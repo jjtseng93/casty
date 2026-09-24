@@ -50,7 +50,7 @@ https://github.com/sanohiro/casty`);
   process.exit(0);
 }
 
-console.log(`casty controls / casty 操作 / casty 操作方法
+const CONTROLS_HELP = `casty controls / casty 操作 / casty 操作方法
 
 [English]
   Alt+L             Address bar
@@ -81,7 +81,11 @@ console.log(`casty controls / casty 操作 / casty 操作方法
   Ctrl+U / Ctrl+K   戻る / 進む
   Ctrl+Q             終了
   アドレスバー：Ctrl+U / Ctrl+K でカーソル前後の文字列を切り取り／復元します。
-`);
+`;
+
+function printControlsHelp() {
+  console.log(CONTROLS_HELP);
+}
 
 // Ensure Chrome is installed (skip if launched from bin/casty shell script)
 if (!process.env.CASTY_ENSURE_CHROME) {
@@ -288,6 +292,7 @@ async function main() {
     try { process.stdin.setRawMode(false); } catch {}
     clearScreen();                 // Clear after everything is stopped — no re-render risk
     cleanupTmp();
+    printControlsHelp();
     process.exit(0);
   }
 
@@ -388,5 +393,6 @@ try {
   disableMouse();
   showCursor();
   cleanupTmp();
+  printControlsHelp();
   process.exit(1);
 }
