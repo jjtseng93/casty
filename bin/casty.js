@@ -106,10 +106,11 @@ import { enableMouse, disableMouse, startInputHandling } from '../lib/input.js';
 import { loadKeyBindings } from '../lib/keys.js';
 import { loadConfig } from '../lib/config.js';
 import { startMedia } from '../lib/media.js';
+import { toURL } from '../lib/urlbar.js';
 
 const config = loadConfig();
 const bindings = loadKeyBindings();
-const url = process.argv[2] || config.homeUrl;
+const url = toURL(process.argv[2] || config.homeUrl);
 
 const TERM_QUERY_TIMEOUT = 1000;  // CSI 14t response timeout (ms)
 
