@@ -164,6 +164,10 @@ has_chrome() {
   fi
   # Playwright 形式 — 再帰的に探索 (バイナリ名: chrome-headless-shell or headless_shell)
   find "$BROWSERS_DIR"/chromium_headless_shell-* \( -name 'chrome-headless-shell' -o -name 'headless_shell' \) -type f 2>/dev/null | grep -q . && return 0
+  # Debian packages the standalone old headless shell under this command.
+  # It is a complete browser binary, not regular Chromium needing
+  # --headless=new, so treat it like the downloaded headless-shell above.
+  command -v chromium-headless-shell >/dev/null 2>&1 && return 0
   return 1
 }
 
