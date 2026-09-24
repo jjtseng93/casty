@@ -215,9 +215,6 @@ async function main() {
   // Log WebSocket errors to stderr (prevent unhandled crash)
   client.on('error', (err) => { console.error('casty: CDP error:', err.message); });
 
-  // Navigate immediately (before screencast) to avoid showing previous session's page
-  client.send('Page.navigate', { url }).catch(e => console.error('casty: navigate error:', e.message));
-
   let renderPaused = false;
   const pauseRender = (p = true) => { renderPaused = p; };
 
@@ -274,6 +271,11 @@ async function main() {
   client.on('Page.frameNavigated', ({ frame }) => {
     if (!frame.parentId) delayedCapture(); // Main frame only
   });
+
+  // Install loading, capture, and input listeners before navigating. A local
+  // server can otherwise finish before they exist, leaving the spinner stuck
+  // and the displayed frame out of sync with subsequent pointer input.
+  client.send('Page.navigate', { url }).catch(e => console.error('casty: navigate error:', e.message));
 
   let shuttingDown = false;
   async function shutdown() {
