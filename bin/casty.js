@@ -185,8 +185,9 @@ async function main() {
   clearScreen();
   enableMouse();
 
-  // Mouse coordinates in device pixels
-  // Chrome headless-shell ignores deviceScaleFactor for Input.dispatchMouseEvent
+  // Terminal cells are measured in device pixels. input.js keeps CSS
+  // coordinates for overlays, then scales input back to the device-pixel
+  // coordinates consumed by Chrome headless-shell.
   const cssCellW = term.cellWidth;
   const cssCellH = term.cellHeight;
   // format: auto → PNG for inline, JPEG (adaptive) for file transfer
@@ -215,7 +216,7 @@ async function main() {
     onFrame,
   });
 
-  urlBar = startInputHandling(client, cssCellW, cssCellH, bindings, pauseRender, forceCapture);
+  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, forceCapture);
   urlBar.render();
 
   // Force capture on page load events (debounced — multiple events fire close together)
@@ -292,7 +293,7 @@ async function main() {
       setDisplaySize(t.cols, t.rows - 1);
       console.error(`casty: resize ${cw}x${ch} (dev:${t.width}x${vh}) zoom:${t.zoom.toFixed(2)}`);
 
-      urlBar.updateCellSize(t.cellWidth, t.cellHeight);
+      urlBar.updateCellSize(t.cellWidth, t.cellHeight, t.zoom);
       clearScreen();
       resetFrameCache();
       disableDedup(3000); // Force re-send for 3s (bcon may not display first frame)
