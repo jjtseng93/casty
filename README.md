@@ -84,6 +84,7 @@ casty   # opens home page
 | Alt+L | Address bar |
 | Alt+F | Hint mode (Vimium-style) |
 | Alt+Left / Right | Back / Forward |
+| Ctrl+U / Ctrl+K | Back / Forward (in the address bar, toggle the text before / after the cursor) |
 | Alt+C | Copy selected text |
 | Ctrl+V | Paste |
 | Ctrl+Q | Quit |

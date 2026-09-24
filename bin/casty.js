@@ -35,9 +35,11 @@ Key bindings:
   Alt+C            Copy selected text
   Ctrl+V           Paste from clipboard
   Alt+Left/Right   Back / Forward
+  Ctrl+U / Ctrl+K  Back / Forward
   Ctrl+Q           Quit
 
 Address bar:
+  Ctrl+U / Ctrl+K  Toggle text before / after the cursor
   Type a URL or search query, then Enter
   /b [query]       Search bookmarks
 
@@ -47,6 +49,39 @@ Keys:   ~/.casty/keys.json
 https://github.com/sanohiro/casty`);
   process.exit(0);
 }
+
+console.log(`casty controls / casty 操作 / casty 操作方法
+
+[English]
+  Alt+L             Address bar
+  Alt+F             Link hints
+  Alt+C             Copy selected text
+  Ctrl+V            Paste
+  Alt+Left / Right  Back / Forward
+  Ctrl+U / Ctrl+K   Back / Forward
+  Ctrl+Q             Quit
+  Address bar: Ctrl+U / Ctrl+K toggles text before / after the cursor.
+
+[中文]
+  Alt+L             地址欄
+  Alt+F             連結提示
+  Alt+C             複製選取文字
+  Ctrl+V            貼上
+  Alt+左 / 右        上一頁 / 下一頁
+  Ctrl+U / Ctrl+K   上一頁 / 下一頁
+  Ctrl+Q             離開
+  地址欄：Ctrl+U / Ctrl+K 可切下或恢復游標前方 / 後方的文字。
+
+[日本語]
+  Alt+L             アドレスバー
+  Alt+F             リンクヒント
+  Alt+C             選択した文字をコピー
+  Ctrl+V            貼り付け
+  Alt+左 / 右        戻る / 進む
+  Ctrl+U / Ctrl+K   戻る / 進む
+  Ctrl+Q             終了
+  アドレスバー：Ctrl+U / Ctrl+K でカーソル前後の文字列を切り取り／復元します。
+`);
 
 // Ensure Chrome is installed (skip if launched from bin/casty shell script)
 if (!process.env.CASTY_ENSURE_CHROME) {

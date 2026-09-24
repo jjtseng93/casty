@@ -84,6 +84,7 @@ casty   # ホームページを開く
 | Alt+L | アドレスバー |
 | Alt+F | ヒントモード（Vimium 風） |
 | Alt+Left / Right | 戻る / 進む |
+| Ctrl+U / Ctrl+K | 戻る / 進む（アドレスバーではカーソル前後の文字列を切り取り／復元） |
 | Alt+C | 選択テキストをコピー |
 | Ctrl+V | ペースト |
 | Ctrl+Q | 終了 |
