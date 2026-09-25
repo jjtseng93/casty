@@ -246,7 +246,7 @@ async function main() {
   }
 
   // Phase 3: Start screencast
-  let { forceCapture, cleanup: screencastCleanup } = await startScreencast(client, {
+  let { forceCapture, requestPreview, cleanup: screencastCleanup } = await startScreencast(client, {
     width: cssWidth,
     height: cssHeight,
     format: screenshotFormat,
@@ -269,12 +269,20 @@ async function main() {
   client.on('Page.domContentEventFired', delayedCapture);
   client.on('Page.loadEventFired', delayedCapture);
   client.on('Page.frameNavigated', ({ frame }) => {
-    if (!frame.parentId) delayedCapture(); // Main frame only
+    if (!frame.parentId) {
+      requestPreview();
+      delayedCapture();
+    }
+  });
+  client.on('Page.navigatedWithinDocument', () => {
+    requestPreview();
+    delayedCapture();
   });
 
   // Install loading, capture, and input listeners before navigating. A local
   // server can otherwise finish before they exist, leaving the spinner stuck
   // and the displayed frame out of sync with subsequent pointer input.
+  requestPreview();
   client.send('Page.navigate', { url }).catch(e => console.error('casty: navigate error:', e.message));
 
   let shuttingDown = false;
@@ -370,7 +378,7 @@ async function main() {
       urlBar.render();
 
       // Restart screencast for ongoing change detection
-      ({ forceCapture, cleanup: screencastCleanup } = await startScreencast(client, {
+      ({ forceCapture, requestPreview, cleanup: screencastCleanup } = await startScreencast(client, {
         width: cw,
         height: ch,
         format: screenshotFormat,
