@@ -195,12 +195,12 @@ async function getTermInfo({ keepAlive = false } = {}) {
 }
 
 async function main() {
-  // Phase 1: Launch Chrome, get terminal info, and start media in parallel
+  // Phase 1: Get terminal info, then launch Chrome at the matching device
+  // scale factor; media starts in parallel.
   // getTermInfo() must complete fully (prevent CSI 14t response leak)
-  const browserP = startBrowser();
   const mediaP = config.media ? startMedia(config) : null;
   const term = await getTermInfo();
-  const browser = await browserP;
+  const browser = await startBrowser(term.zoom);
   const media = mediaP ? await mediaP : null;
 
   // Reserve line 1 for URL bar, use the rest for browser display
@@ -222,9 +222,8 @@ async function main() {
   clearScreen();
   enableMouse();
 
-  // Terminal cells are measured in device pixels. input.js keeps CSS
-  // coordinates for overlays, then scales input back to the device-pixel
-  // coordinates consumed by Chrome headless-shell.
+  // Terminal cells are measured in device pixels; input.js converts them to
+  // the CSS pixels that CDP Input and page overlays both use.
   const cssCellW = term.cellWidth;
   const cssCellH = term.cellHeight;
   // format: auto → PNG for inline, JPEG (adaptive) for file transfer
