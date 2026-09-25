@@ -82,7 +82,7 @@ casty   # opens home page
 | Key | Action |
 |-----|--------|
 | Alt+L | Address bar |
-| Alt+F | Hint mode (Vimium-style) |
+| Alt+F / Ctrl+L | Hint mode (Vimium-style) |
 | Alt+Left / Right | Back / Forward |
 | Ctrl+U / Ctrl+K | Back / Forward (in the address bar, toggle the text before / after the cursor) |
 | Alt+C | Copy selected text |
@@ -93,7 +93,7 @@ Customizable via `~/.casty/keys.json`.
 
 ### Hint Mode
 
-**Alt+F** shows labels on clickable elements. Type the label to click. Labels use home-row keys (`a s d f j k l`).
+**Alt+F** or **Ctrl+L** shows labels on clickable elements. Type the label to click. Labels use home-row keys (`a s d f j k l`).
 
 ### Address Bar
 

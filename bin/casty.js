@@ -31,7 +31,7 @@ Options:
 
 Key bindings:
   Alt+L            Address bar
-  Alt+F            Hint mode (Vimium-style link navigation)
+  Alt+F / Ctrl+L   Hint mode (Vimium-style link navigation)
   Alt+C            Copy selected text
   Ctrl+V           Paste from clipboard
   Alt+Left/Right   Back / Forward
@@ -54,7 +54,7 @@ const CONTROLS_HELP = `casty controls / casty 操作 / casty 操作方法
 
 [English]
   Alt+L             Address bar
-  Alt+F             Link hints
+  Alt+F / Ctrl+L    Link hints
   Alt+C             Copy selected text
   Ctrl+V            Paste
   Alt+Left / Right  Back / Forward
@@ -64,7 +64,7 @@ const CONTROLS_HELP = `casty controls / casty 操作 / casty 操作方法
 
 [中文]
   Alt+L             地址欄
-  Alt+F             連結提示
+  Alt+F / Ctrl+L    連結提示
   Alt+C             複製選取文字
   Ctrl+V            貼上
   Alt+左 / 右        上一頁 / 下一頁
@@ -74,7 +74,7 @@ const CONTROLS_HELP = `casty controls / casty 操作 / casty 操作方法
 
 [日本語]
   Alt+L             アドレスバー
-  Alt+F             リンクヒント
+  Alt+F / Ctrl+L    リンクヒント
   Alt+C             選択した文字をコピー
   Ctrl+V            貼り付け
   Alt+左 / 右        戻る / 進む

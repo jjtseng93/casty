@@ -44,7 +44,7 @@ lib/chrome.js        Chrome binary detection and process launch
 lib/input.js         Keyboard/mouse input handling, key bindings, clipboard
 lib/kitty.js         Kitty graphics protocol output (file/inline transfer)
 lib/urlbar.js        Address bar (always visible on line 1)
-lib/hints.js         Vimium-style hint mode (Alt+F)
+lib/hints.js         Vimium-style hint mode (Alt+F / Ctrl+L)
 lib/config.js        Config loading (~/.casty/config.json)
 lib/keys.js          Key binding config (~/.casty/keys.json)
 lib/bookmarks.js     Bookmark search (~/.casty/bookmarks.json)
@@ -60,7 +60,7 @@ lib/bookmarks.js     Bookmark search (~/.casty/bookmarks.json)
 | Alt+L     | Address bar   |
 | Alt+C     | Copy          |
 | Ctrl+V    | Paste         |
-| Alt+F     | Hint mode     |
+| Alt+F / Ctrl+L | Hint mode |
 
 Customizable via `~/.casty/keys.json`.
 
