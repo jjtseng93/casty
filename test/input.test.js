@@ -40,6 +40,20 @@ test('dispatchClick sends a matched pressed/released pair in CSS pixels', async 
   ]);
 });
 
+test('dispatchClick sends the right button with its buttons bitmask', async () => {
+  const calls = [];
+  const client = {
+    async send(method, params) { calls.push({ method, params }); },
+  };
+
+  await dispatchClick(client, 12.5, 34.5, { button: 'right' });
+
+  assert.deepEqual(calls.slice(1).map(c => c.params), [
+    { type: 'mousePressed', x: 12.5, y: 34.5, button: 'right', clickCount: 1, buttons: 2 },
+    { type: 'mouseReleased', x: 12.5, y: 34.5, button: 'right', clickCount: 1, buttons: 0 },
+  ]);
+});
+
 test('showClickMarker creates a non-interactive temporary marker', async () => {
   const calls = [];
   await showClickMarker({
