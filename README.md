@@ -2,7 +2,7 @@
 
 Run a real Chrome browser inside your terminal.
 
-**[Japanese](README.ja.md)**
+**[日本語](README.ja.md)** | **[繁體中文](README.zh-TW.md)**
 
 casty is not a text-mode browser like w3m or lynx. It launches headless Chrome, grabs the rendered frames over CDP, and draws them in your terminal via Kitty graphics protocol. Think of it as a remote desktop for Chrome that fits in a terminal window.
 
@@ -199,6 +199,33 @@ To reset all settings and profile data:
 ```bash
 rm -rf ~/.casty
 ```
+
+## Implementation Notes
+
+### Input coordinates and device scale factor
+
+CDP `Input.dispatchMouseEvent` always takes **CSS pixels**. Never multiply
+them by the zoom / device scale factor.
+
+casty renders HiDPI frames by emulating `deviceScaleFactor = zoom` via
+`Emulation.setDeviceMetricsOverride`. While `Page.captureScreenshot` runs
+under device emulation, Chromium temporarily rescales the emulated view by
+`emulated DSF / real DSF` so the bitmap comes out at physical resolution, and
+restores it afterwards (`PageHandler::CaptureScreenshot` in
+`content/browser/devtools/protocol/page_handler.cc`). Input dispatch ignores
+emulation, so a click that lands during a capture is read in device pixels
+and hits `(x / zoom, y / zoom)`. With frames captured ~12 times per second,
+this showed up as taps that *sometimes* missed or hit something up and to
+the left, while the click marker (drawn in CSS pixels) looked correct.
+
+Fix: Chrome is launched with `--force-device-scale-factor=<zoom>`, so the
+real and emulated DSF match, the rescale factor is 1, and input stays in CSS
+pixels even mid-capture. Frame resolution is unchanged. This also explains an
+earlier false lead that headless-shell "consumes device pixels": the samples
+were dominated by the capture race.
+
+Known limitation: if the zoom changes at runtime (terminal font resize), the
+real DSF keeps its launch value until casty restarts.
 
 ## License
 

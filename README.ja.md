@@ -2,7 +2,7 @@
 
 ターミナルで本物の Chrome ブラウザを動かす。
 
-**[English](README.md)**
+**[English](README.md)** | **[繁體中文](README.zh-TW.md)**
 
 casty は w3m や lynx のようなテキストブラウザではありません。ヘッドレス Chrome を起動し、CDP でレンダリング結果を取得して、Kitty graphics protocol でターミナルに描画します。Chrome のリモートデスクトップがターミナルに収まった感じです。
 
@@ -199,6 +199,33 @@ casty  # Chrome が自動で再ダウンロードされます
 ```bash
 rm -rf ~/.casty
 ```
+
+## 実装メモ
+
+### 入力座標とデバイススケールファクター
+
+CDP の `Input.dispatchMouseEvent` は常に **CSS ピクセル**で指定します。
+ズーム / デバイススケールファクターを掛けてはいけません。
+
+casty は `Emulation.setDeviceMetricsOverride` で `deviceScaleFactor = zoom`
+をエミュレートして高解像度フレームを得ています。デバイスエミュレーション中に
+`Page.captureScreenshot` を実行すると、Chromium は物理解像度のビットマップを
+得るため、エミュレートしたビューを一時的に `エミュレート DSF / 実 DSF` 倍に
+拡大し、撮影後に元に戻します（`content/browser/devtools/protocol/page_handler.cc`
+の `PageHandler::CaptureScreenshot`）。入力処理はエミュレーションを考慮しない
+ため、キャプチャ中に届いたクリックはデバイスピクセルとして解釈され、
+`(x / zoom, y / zoom)` に当たります。フレームは毎秒約 12 回キャプチャされるので、
+タップが「ときどき」外れる、または左上の別の要素に当たる症状として現れました。
+CSS ピクセルで描くクリックマーカーの位置は正しく見えます。
+
+対策: Chrome を `--force-device-scale-factor=<zoom>` 付きで起動し、実 DSF と
+エミュレート DSF を一致させます。拡大率が 1 になるので、キャプチャ中でも入力は
+CSS ピクセルのまま扱われます。フレーム解像度は変わりません。以前の
+「headless-shell はデバイスピクセルを受け取る」という誤った結論も、
+サンプルの大半がこのキャプチャ競合に当たっていたことで説明できます。
+
+既知の制限: 実行中にズームが変わった場合（ターミナルのフォントサイズ変更）、
+実 DSF は casty を再起動するまで起動時の値のままです。
 
 ## ライセンス
 
