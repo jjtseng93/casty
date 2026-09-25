@@ -158,7 +158,7 @@ Create `~/.casty/bookmarks.json`:
 
 ```json
 {
-  "homeUrl": "https://github.com/sanohiro/casty",
+  "homeUrl": "https://github.com/jjtseng93/casty",
   "searchUrl": "https://www.google.com/search?q=",
   "transport": "auto",
   "format": "auto",
@@ -168,7 +168,7 @@ Create `~/.casty/bookmarks.json`:
 
 | Key | Description | Default |
 |-----|-------------|---------|
-| `homeUrl` | Start page | `https://github.com/sanohiro/casty` |
+| `homeUrl` | Start page | `https://github.com/jjtseng93/casty` |
 | `searchUrl` | Search engine URL | `https://www.google.com/search?q=` |
 | `transport` | Image transfer: `auto`, `file`, `inline` | `auto` (bcon/kitty→file, others→inline) |
 | `format` | Capture format: `auto`, `png`, `jpeg` | `auto` (file→jpeg adaptive, inline→png) |

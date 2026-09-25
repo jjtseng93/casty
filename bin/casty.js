@@ -46,7 +46,7 @@ Address bar:
 Config: ~/.casty/config.json
 Keys:   ~/.casty/keys.json
 
-https://github.com/sanohiro/casty`);
+https://github.com/jjtseng93/casty`);
   process.exit(0);
 }
 

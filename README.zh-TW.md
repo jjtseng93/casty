@@ -158,7 +158,7 @@ bun casty.js   # 開啟首頁
 
 ```json
 {
-  "homeUrl": "https://github.com/sanohiro/casty",
+  "homeUrl": "https://github.com/jjtseng93/casty",
   "searchUrl": "https://www.google.com/search?q=",
   "transport": "auto",
   "format": "auto",
@@ -168,7 +168,7 @@ bun casty.js   # 開啟首頁
 
 | 鍵 | 說明 | 預設值 |
 |----|------|--------|
-| `homeUrl` | 首頁 | `https://github.com/sanohiro/casty` |
+| `homeUrl` | 首頁 | `https://github.com/jjtseng93/casty` |
 | `searchUrl` | 搜尋引擎網址 | `https://www.google.com/search?q=` |
 | `transport` | 影像傳輸方式：`auto`、`file`、`inline` | `auto`（bcon/kitty→file，其他→inline） |
 | `format` | 擷取格式：`auto`、`png`、`jpeg` | `auto`（file→jpeg 自適應，inline→png） |

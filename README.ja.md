@@ -158,7 +158,7 @@ bun casty.js   # ホームページを開く
 
 ```json
 {
-  "homeUrl": "https://github.com/sanohiro/casty",
+  "homeUrl": "https://github.com/jjtseng93/casty",
   "searchUrl": "https://www.google.com/search?q=",
   "transport": "auto",
   "format": "auto",
@@ -168,7 +168,7 @@ bun casty.js   # ホームページを開く
 
 | キー | 説明 | デフォルト |
 |------|------|-----------|
-| `homeUrl` | スタートページ | `https://github.com/sanohiro/casty` |
+| `homeUrl` | スタートページ | `https://github.com/jjtseng93/casty` |
 | `searchUrl` | 検索エンジン URL | `https://www.google.com/search?q=` |
 | `transport` | 画像転送方式: `auto`, `file`, `inline` | `auto` (bcon/kitty→file、他→inline) |
 | `format` | キャプチャ形式: `auto`, `png`, `jpeg` | `auto` (file→jpeg adaptive、inline→png) |
