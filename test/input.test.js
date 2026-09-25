@@ -8,13 +8,16 @@ test('cellToPixel aims at the cell centre in Chrome CSS pixels', () => {
   assert.deepEqual(cellToPixel(11, 12, 10, 20, 1.25), { x: 84, y: 168 });
 });
 
-test('dispatchClick sends a matched pressed/released pair', async () => {
+// Input coordinates must stay in CSS pixels: scaling them by the zoom only
+// appeared to work while clicks raced Page.captureScreenshot (see README,
+// Implementation Notes).
+test('dispatchClick sends a matched pressed/released pair in CSS pixels', async () => {
   const calls = [];
   const client = {
     async send(method, params) { calls.push({ method, params }); },
   };
 
-  await dispatchClick(client, 12.5, 34.5, { clickCount: 2, coordinateScale: 1.25 });
+  await dispatchClick(client, 12.5, 34.5, { clickCount: 2 });
 
   assert.equal(calls[0].method, 'Runtime.evaluate');
   assert.match(calls[0].params.expression, /left:12\.5px/);
@@ -23,14 +26,14 @@ test('dispatchClick sends a matched pressed/released pair', async () => {
     {
       method: 'Input.dispatchMouseEvent',
       params: {
-        type: 'mousePressed', x: 15.625, y: 43.125,
+        type: 'mousePressed', x: 12.5, y: 34.5,
         button: 'left', clickCount: 2, buttons: 1,
       },
     },
     {
       method: 'Input.dispatchMouseEvent',
       params: {
-        type: 'mouseReleased', x: 15.625, y: 43.125,
+        type: 'mouseReleased', x: 12.5, y: 34.5,
         button: 'left', clickCount: 2, buttons: 0,
       },
     },
