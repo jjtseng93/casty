@@ -8,6 +8,7 @@
 >
 > - 修復點擊連結：點按有時候點不到，或點到錯的元素（見[實作筆記](#實作筆記)）
 > - 適配 [Buninu Linux](https://github.com/jjtseng93/buninu-linux) 的 kernel VT：在那裡無法使用 Alt+Left / Alt+Right 導航快捷鍵，改用 **Ctrl+U / Ctrl+K** 上一頁 / 下一頁
+> - 修復本機伺服器（例如 `localhost`）比 casty 註冊事件監聽器更早回應的競態：會導致載入指示一直轉、顯示的畫面與輸入不同步
 
 casty 不是 w3m 或 lynx 那種文字模式瀏覽器。它會啟動無頭（headless）Chrome，透過 CDP 取得渲染好的畫面，再用 Kitty graphics protocol 畫到終端機上。可以把它想成一個塞進終端機視窗的 Chrome 遠端桌面。
 

@@ -8,6 +8,7 @@ Run a real Chrome browser inside your terminal.
 >
 > - Fixes clicking links: taps and clicks sometimes missed or hit the wrong element (see [Implementation Notes](#implementation-notes))
 > - Adapts casty to the kernel VT of [Buninu Linux](https://github.com/jjtseng93/buninu-linux), where the Alt+Left / Alt+Right navigation shortcuts cannot be used: **Ctrl+U / Ctrl+K** go back / forward instead
+> - Fixes a race when a local server (e.g. `localhost`) responds before casty's event listeners are registered, which left the loading spinner stuck and the displayed frame out of sync with input
 
 casty is not a text-mode browser like w3m or lynx. It launches headless Chrome, grabs the rendered frames over CDP, and draws them in your terminal via Kitty graphics protocol. Think of it as a remote desktop for Chrome that fits in a terminal window.
 

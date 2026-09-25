@@ -8,6 +8,7 @@
 >
 > - リンクのクリックを修正: タップやクリックがときどき外れる、または別の要素に当たる問題（[実装メモ](#実装メモ)を参照）
 > - [Buninu Linux](https://github.com/jjtseng93/buninu-linux) のカーネル VT に対応: Alt+Left / Alt+Right のナビゲーションショートカットが使えないため、代わりに **Ctrl+U / Ctrl+K** で戻る / 進む
+> - ローカルサーバー（`localhost` など）が casty のイベントリスナー登録より先に応答する競合を修正: 読み込み表示が止まらず、表示中のフレームと入力がずれる問題
 
 casty は w3m や lynx のようなテキストブラウザではありません。ヘッドレス Chrome を起動し、CDP でレンダリング結果を取得して、Kitty graphics protocol でターミナルに描画します。Chrome のリモートデスクトップがターミナルに収まった感じです。
 
