@@ -4,6 +4,11 @@
 
 **[English](README.md)** | **[日本語](README.ja.md)**
 
+> **這是 [jjtseng93](https://github.com/jjtseng93) 從 [sanohiro/casty](https://github.com/sanohiro/casty) fork 出來的版本。** 主要改動：
+>
+> - 修復點擊連結：點按有時候點不到，或點到錯的元素（見[實作筆記](#實作筆記)）
+> - 適配 [Buninu Linux](https://github.com/jjtseng93/buninu-linux) 的 kernel VT：在那裡無法使用 Alt+Left / Alt+Right 導航快捷鍵，改用 **Ctrl+U / Ctrl+K** 上一頁 / 下一頁
+
 casty 不是 w3m 或 lynx 那種文字模式瀏覽器。它會啟動無頭（headless）Chrome，透過 CDP 取得渲染好的畫面，再用 Kitty graphics protocol 畫到終端機上。可以把它想成一個塞進終端機視窗的 Chrome 遠端桌面。
 
 ![在 Ghostty 上執行的 casty](docs/screenshot-ghostty.png)
@@ -40,24 +45,49 @@ casty 不是 w3m 或 lynx 那種文字模式瀏覽器。它會啟動無頭（hea
 ## 安裝
 
 ```bash
-npm install -g @sanohiro/casty
-casty
+git clone https://github.com/jjtseng93/casty
+cd casty/bin
+bun casty.js https://google.com
 ```
 
-或從原始碼安裝：
+如果系統有安裝 `chromium-headless-shell`，會優先使用它；否則第一次執行時，Chrome Headless Shell 會自動安裝到 `~/.casty/browsers/`。
+
+### 在空的 Debian 上安裝依賴
+
+精簡的 Debian（例如新建立的容器或 chroot）缺少 casty 需要的套件，請先安裝：
 
 ```bash
-git clone https://github.com/sanohiro/casty.git
-cd casty && npm install
-./bin/casty
+apt update
+apt install --no-install-recommends ca-certificates curl unzip chromium-headless-shell fonts-noto-cjk fonts-noto-color-emoji git
+curl -fsSL https://bun.sh/install | bash
 ```
 
-第一次執行時，Chrome Headless Shell 會自動安裝到 `~/.casty/browsers/`。
+### 在 Buninu Linux 上的完整啟動方法
+
+在 Buninu Linux 的 shell 裡，用 [js-udocker](https://github.com/jjtseng93/js-udocker) 下載 x64 Debian rootfs 並進入，安裝依賴後啟動 casty：
+
+```bash
+# 請先在 bunterm 裡執行（例如 bunterm --font-size 13）
+bun x bunproot --git --yes clone https://github.com/jjtseng93/js-udocker
+cd js-udocker
+bun udocker.js pull --platform=linux/amd64 debian:13
+bun udocker.js create --name db debian:13
+cd ~/.udocker/containers/db/ROOT
+chroot . /bin/bash
+apt update
+apt install --no-install-recommends ca-certificates curl unzip chromium-headless-shell fonts-noto-cjk fonts-noto-color-emoji git
+curl -fsSL https://bun.sh/install | bash
+bun x bunmsh
+cd
+git clone https://github.com/jjtseng93/casty
+cd casty/bin
+bun casty.js buninu.org
+```
 
 ### 系統需求
 
 - 支援 **Kitty graphics protocol** 的終端機（已在 Ghostty、kitty、bcon 上測試）
-- Node.js >= 18
+- Bun（或執行 `npm install` 後使用 Node.js >= 18）
 - `unzip`（自動安裝 Chrome 時需要）
 
 ### tmux
@@ -72,9 +102,10 @@ set -g allow-passthrough on
 ## 使用方式
 
 ```bash
-casty https://google.com
-casty https://youtube.com
-casty   # 開啟首頁
+cd casty/bin
+bun casty.js https://google.com
+bun casty.js https://youtube.com
+bun casty.js   # 開啟首頁
 ```
 
 ### 快捷鍵
@@ -187,12 +218,20 @@ pulseaudio --start
 
 ### Chrome 當掉
 
-如果 casty 無法啟動或 Chrome 當掉，請試著刪除瀏覽器快取：
+如果 casty 無法啟動或 Chrome 當掉：
 
-```bash
-rm -rf ~/.casty/browsers
-casty  # 會自動重新下載 Chrome
-```
+- 有安裝系統的 `chromium-headless-shell` 時，casty 一律使用它，不會下載 Chrome。請改為重新安裝套件：
+
+  ```bash
+  apt install --reinstall chromium-headless-shell
+  ```
+
+- 沒有安裝時，casty 使用下載到 `~/.casty/browsers/` 的 Chrome。刪除後，下次啟動會重新下載：
+
+  ```bash
+  rm -rf ~/.casty/browsers
+  bun casty.js
+  ```
 
 要重設所有設定和設定檔資料：
 

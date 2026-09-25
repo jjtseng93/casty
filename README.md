@@ -4,6 +4,11 @@ Run a real Chrome browser inside your terminal.
 
 **[日本語](README.ja.md)** | **[繁體中文](README.zh-TW.md)**
 
+> **This is [jjtseng93](https://github.com/jjtseng93)'s fork of [sanohiro/casty](https://github.com/sanohiro/casty).** Main changes:
+>
+> - Fixes clicking links: taps and clicks sometimes missed or hit the wrong element (see [Implementation Notes](#implementation-notes))
+> - Adapts casty to the kernel VT of [Buninu Linux](https://github.com/jjtseng93/buninu-linux), where the Alt+Left / Alt+Right navigation shortcuts cannot be used: **Ctrl+U / Ctrl+K** go back / forward instead
+
 casty is not a text-mode browser like w3m or lynx. It launches headless Chrome, grabs the rendered frames over CDP, and draws them in your terminal via Kitty graphics protocol. Think of it as a remote desktop for Chrome that fits in a terminal window.
 
 ![casty running on Ghostty](docs/screenshot-ghostty.png)
@@ -40,24 +45,49 @@ Camera and microphone can be streamed to WebRTC sites like Google Meet, Zoom, et
 ## Installation
 
 ```bash
-npm install -g @sanohiro/casty
-casty
+git clone https://github.com/jjtseng93/casty
+cd casty/bin
+bun casty.js https://google.com
 ```
 
-Or from source:
+If the system `chromium-headless-shell` is installed, it is used first. Otherwise Chrome Headless Shell is auto-installed to `~/.casty/browsers/` on first run.
+
+### Dependencies on a bare Debian
+
+A minimal Debian (e.g. a fresh container or chroot) does not have what casty needs. Install these first:
 
 ```bash
-git clone https://github.com/sanohiro/casty.git
-cd casty && npm install
-./bin/casty
+apt update
+apt install --no-install-recommends ca-certificates curl unzip chromium-headless-shell fonts-noto-cjk fonts-noto-color-emoji git
+curl -fsSL https://bun.sh/install | bash
 ```
 
-Chrome Headless Shell is auto-installed to `~/.casty/browsers/` on first run.
+### Full walkthrough on Buninu Linux
+
+From a Buninu Linux shell: download an x64 Debian rootfs with [js-udocker](https://github.com/jjtseng93/js-udocker), enter it, install the dependencies, then run casty:
+
+```bash
+# Run inside bunterm first (e.g. bunterm --font-size 13)
+bun x bunproot --git --yes clone https://github.com/jjtseng93/js-udocker
+cd js-udocker
+bun udocker.js pull --platform=linux/amd64 debian:13
+bun udocker.js create --name db debian:13
+cd ~/.udocker/containers/db/ROOT
+chroot . /bin/bash
+apt update
+apt install --no-install-recommends ca-certificates curl unzip chromium-headless-shell fonts-noto-cjk fonts-noto-color-emoji git
+curl -fsSL https://bun.sh/install | bash
+bun x bunmsh
+cd
+git clone https://github.com/jjtseng93/casty
+cd casty/bin
+bun casty.js buninu.org
+```
 
 ### Requirements
 
 - A terminal with **Kitty graphics protocol** support (tested on Ghostty, kitty, bcon)
-- Node.js >= 18
+- Bun (or Node.js >= 18 after `npm install`)
 - `unzip` (for Chrome auto-install)
 
 ### tmux
@@ -72,9 +102,10 @@ set -g allow-passthrough on
 ## Usage
 
 ```bash
-casty https://google.com
-casty https://youtube.com
-casty   # opens home page
+cd casty/bin
+bun casty.js https://google.com
+bun casty.js https://youtube.com
+bun casty.js   # opens home page
 ```
 
 ### Keybindings
@@ -187,12 +218,20 @@ pulseaudio --start
 
 ### Chrome crashes
 
-If casty fails to start or Chrome crashes, try removing the browser cache:
+If casty fails to start or Chrome crashes:
 
-```bash
-rm -rf ~/.casty/browsers
-casty  # re-downloads Chrome automatically
-```
+- With the system `chromium-headless-shell` installed, casty always uses it and never downloads Chrome. Reinstall the package instead:
+
+  ```bash
+  apt install --reinstall chromium-headless-shell
+  ```
+
+- Without it, casty uses the Chrome downloaded to `~/.casty/browsers/`. Remove it and it is downloaded again on the next start:
+
+  ```bash
+  rm -rf ~/.casty/browsers
+  bun casty.js
+  ```
 
 To reset all settings and profile data:
 

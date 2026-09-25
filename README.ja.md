@@ -4,6 +4,11 @@
 
 **[English](README.md)** | **[繁體中文](README.zh-TW.md)**
 
+> **これは [sanohiro/casty](https://github.com/sanohiro/casty) の [jjtseng93](https://github.com/jjtseng93) によるフォークです。** 主な変更点:
+>
+> - リンクのクリックを修正: タップやクリックがときどき外れる、または別の要素に当たる問題（[実装メモ](#実装メモ)を参照）
+> - [Buninu Linux](https://github.com/jjtseng93/buninu-linux) のカーネル VT に対応: Alt+Left / Alt+Right のナビゲーションショートカットが使えないため、代わりに **Ctrl+U / Ctrl+K** で戻る / 進む
+
 casty は w3m や lynx のようなテキストブラウザではありません。ヘッドレス Chrome を起動し、CDP でレンダリング結果を取得して、Kitty graphics protocol でターミナルに描画します。Chrome のリモートデスクトップがターミナルに収まった感じです。
 
 ![Ghostty 上で動作する casty](docs/screenshot-ghostty.png)
@@ -40,24 +45,49 @@ ffmpeg 経由でカメラとマイクをキャプチャし、Google Meet や Zoo
 ## インストール
 
 ```bash
-npm install -g @sanohiro/casty
-casty
+git clone https://github.com/jjtseng93/casty
+cd casty/bin
+bun casty.js https://google.com
 ```
 
-ソースから:
+システムの `chromium-headless-shell` がインストールされていればそれを優先して使います。なければ初回起動時に Chrome Headless Shell が `~/.casty/browsers/` に自動インストールされます。
+
+### 素の Debian での依存パッケージ
+
+最小構成の Debian（新しいコンテナや chroot など）には casty に必要なものが入っていません。先に以下をインストールしてください:
 
 ```bash
-git clone https://github.com/sanohiro/casty.git
-cd casty && npm install
-./bin/casty
+apt update
+apt install --no-install-recommends ca-certificates curl unzip chromium-headless-shell fonts-noto-cjk fonts-noto-color-emoji git
+curl -fsSL https://bun.sh/install | bash
 ```
 
-初回起動時に Chrome Headless Shell が `~/.casty/browsers/` に自動インストールされます。
+### Buninu Linux での完全な手順
+
+Buninu Linux のシェルから、[js-udocker](https://github.com/jjtseng93/js-udocker) で x64 Debian の rootfs を取得して入り、依存パッケージをインストールしてから casty を起動します:
+
+```bash
+# 先に bunterm 内で実行しておく（例: bunterm --font-size 13）
+bun x bunproot --git --yes clone https://github.com/jjtseng93/js-udocker
+cd js-udocker
+bun udocker.js pull --platform=linux/amd64 debian:13
+bun udocker.js create --name db debian:13
+cd ~/.udocker/containers/db/ROOT
+chroot . /bin/bash
+apt update
+apt install --no-install-recommends ca-certificates curl unzip chromium-headless-shell fonts-noto-cjk fonts-noto-color-emoji git
+curl -fsSL https://bun.sh/install | bash
+bun x bunmsh
+cd
+git clone https://github.com/jjtseng93/casty
+cd casty/bin
+bun casty.js buninu.org
+```
 
 ### 必要環境
 
 - **Kitty graphics protocol** 対応ターミナル（動作確認済み: Ghostty, kitty, bcon）
-- Node.js >= 18
+- Bun（または `npm install` 後の Node.js >= 18）
 - `unzip`（Chrome 自動インストールに必要）
 
 ### tmux
@@ -72,9 +102,10 @@ set -g allow-passthrough on
 ## 使い方
 
 ```bash
-casty https://google.com
-casty https://youtube.com
-casty   # ホームページを開く
+cd casty/bin
+bun casty.js https://google.com
+bun casty.js https://youtube.com
+bun casty.js   # ホームページを開く
 ```
 
 ### キーバインド
@@ -187,12 +218,20 @@ pulseaudio --start
 
 ### Chrome がクラッシュする
 
-casty が起動しない、または Chrome がクラッシュする場合、ブラウザキャッシュを削除してください：
+casty が起動しない、または Chrome がクラッシュする場合：
 
-```bash
-rm -rf ~/.casty/browsers
-casty  # Chrome が自動で再ダウンロードされます
-```
+- システムの `chromium-headless-shell` がインストールされていれば、casty は常にそれを使い、Chrome をダウンロードしません。パッケージを再インストールしてください：
+
+  ```bash
+  apt install --reinstall chromium-headless-shell
+  ```
+
+- インストールされていなければ、casty は `~/.casty/browsers/` にダウンロードした Chrome を使います。削除すると次回起動時に再ダウンロードされます：
+
+  ```bash
+  rm -rf ~/.casty/browsers
+  bun casty.js
+  ```
 
 すべての設定とプロファイルをリセットするには：
 
