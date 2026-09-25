@@ -18,14 +18,25 @@ casty is not a text-mode browser like w3m or lynx. It launches headless Chrome, 
 ## How It Works
 
 ```
-Terminal (you)          casty               Chrome (headless)
-┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-│  Kitty       │ ←──  │  Screencast  │ ←──  │  Full web    │
-│  graphics    │      │  + hi-res    │      │  rendering   │
-│  display     │      │  capture     │      │  JS, CSS,    │
-│              │ ──→  │  Input       │ ──→  │  Canvas,     │
-│  Mouse/KB    │      │  bridge      │      │  WebGL       │
-└──────────────┘      └──────────────┘      └──────────────┘
+┌──────────────────────────────────┐
+│ Terminal (you)                   │
+│ Kitty graphics display           │
+│ Mouse / keyboard                 │
+└──────────────────────────────────┘
+    ▲ frames            │ input
+    │                   ▼
+┌──────────────────────────────────┐
+│ casty                            │
+│ Screencast + hi-res capture      │
+│ Input bridge                     │
+└──────────────────────────────────┘
+    ▲ frames            │ input
+    │                   ▼
+┌──────────────────────────────────┐
+│ Chrome (headless)                │
+│ Full web rendering               │
+│ JS, CSS, Canvas, WebGL           │
+└──────────────────────────────────┘
 ```
 
 Chrome does all the rendering. casty is just a bridge (~2300 lines) that streams frames to your terminal and sends input back. No Playwright, no puppeteer — raw CDP over WebSocket.
