@@ -99,6 +99,7 @@ bun casty.js buninu.org
 ### Requirements
 
 - A terminal with **Kitty graphics protocol** support (tested on Ghostty, kitty, bcon)
+  - This fork has only been tested in [bunterm](https://github.com/jjtseng93/buninu-linux/tree/main/initramfs/lib/bunterm) of [Buninu Linux](https://github.com/jjtseng93/buninu-linux) and in [jsgotty](https://github.com/jjtseng93/js-gotty)
 - Bun (or Node.js >= 18 after `npm install`)
 - `unzip` (for Chrome auto-install)
 

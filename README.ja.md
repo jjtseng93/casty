@@ -99,6 +99,7 @@ bun casty.js buninu.org
 ### 必要環境
 
 - **Kitty graphics protocol** 対応ターミナル（動作確認済み: Ghostty, kitty, bcon）
+  - このフォークは [Buninu Linux](https://github.com/jjtseng93/buninu-linux) の [bunterm](https://github.com/jjtseng93/buninu-linux/tree/main/initramfs/lib/bunterm) と [jsgotty](https://github.com/jjtseng93/js-gotty) でのみ動作確認しています
 - Bun（または `npm install` 後の Node.js >= 18）
 - `unzip`（Chrome 自動インストールに必要）
 

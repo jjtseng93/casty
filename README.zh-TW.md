@@ -99,6 +99,7 @@ bun casty.js buninu.org
 ### 系統需求
 
 - 支援 **Kitty graphics protocol** 的終端機（已在 Ghostty、kitty、bcon 上測試）
+  - 這個 fork 只在 [Buninu Linux](https://github.com/jjtseng93/buninu-linux) 的 [bunterm](https://github.com/jjtseng93/buninu-linux/tree/main/initramfs/lib/bunterm) 以及 [jsgotty](https://github.com/jjtseng93/js-gotty) 裡實測過
 - Bun（或執行 `npm install` 後使用 Node.js >= 18）
 - `unzip`（自動安裝 Chrome 時需要）
 
