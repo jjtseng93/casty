@@ -12,6 +12,9 @@
     "wui": "bun ./index.js --readme-wui-zh",
     "check": "node --check ./bin/casty.js"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "browser",
     "tty",
