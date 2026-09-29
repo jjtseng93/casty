@@ -28,8 +28,8 @@ const readmeOptions = {
 };
 if (Object.hasOwn(readmeOptions, cliArgs[0])) {
   const [mode, readme] = readmeOptions[cliArgs[0]];
-  const child = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx',
-    ['jsmdcui', mode, readme, '--kitty'], { cwd: packageDir, stdio: 'inherit' });
+  const child = spawnSync('bun',
+    ['x', 'jsmdcui', mode, readme, '--kitty'], { cwd: packageDir, stdio: 'inherit' });
   if (child.error) console.error(`casty: failed to start jsmdcui: ${child.error.message}`);
   process.exit(child.status ?? 1);
 }
