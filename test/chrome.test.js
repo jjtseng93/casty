@@ -77,3 +77,49 @@ test('splitBrowserArgs passes everything after -- to the browser', async () => {
   // Only the first -- separates; later ones are browser arguments.
   assert.deepEqual(splitBrowserArgs(['a', '--', 'b', '--', 'c']), { args: ['a'], browserArgs: ['b', '--', 'c'] });
 });
+
+test('CASTY_BROWSER, then BUN_CHROME_PATH, choose the browser before any search', async () => {
+  const { findChrome } = await import('../lib/chrome.js');
+  assert.deepEqual(findChrome({ CASTY_BROWSER: '/opt/buninu/buninu-browser.js', BUN_CHROME_PATH: '/usr/bin/chromium' }),
+    { bin: '/opt/buninu/buninu-browser.js', headless: false });
+  assert.deepEqual(findChrome({ BUN_CHROME_PATH: '/usr/bin/chromium' }), { bin: '/usr/bin/chromium', headless: true });
+  assert.deepEqual(findChrome({ BUN_CHROME_PATH: '/opt/chrome-headless-shell' }),
+    { bin: '/opt/chrome-headless-shell', headless: false });
+});
+
+test('launchCommand runs scripts with a JS runtime and spawns anything else directly', async () => {
+  const { launchCommand } = await import('../lib/chrome.js');
+  const { findInPath } = await import('../lib/chrome.js');
+  const runtime = globalThis.Bun?.which?.('bun') || findInPath('bun') || process.argv0;
+  for (const bin of ['/b/browser.js', '/b/browser.MJS', '/b/browser.ts', '/b/browser.tsx', '/b/browser.cjs']) {
+    assert.deepEqual(launchCommand(bin, ['--x']), { command: runtime, args: [bin, '--x'] });
+  }
+  for (const bin of ['/usr/bin/chromium', 'C:\\Chrome\\chrome.exe', '/b/headless_shell']) {
+    assert.deepEqual(launchCommand(bin, ['--x']), { command: bin, args: ['--x'] });
+  }
+});
+
+test('findInPath finds executables on POSIX and only .exe/.com on Windows', async () => {
+  const { findInPath } = await import('../lib/chrome.js');
+  const root = join(tmpdir(), `casty-path-${process.pid}`);
+  const [plain, noExec] = ['plain', 'noexec'].map((dir) => join(root, dir));
+  for (const dir of [plain, noExec]) mkdirSync(dir, { recursive: true });
+  try {
+    writeFileSync(join(noExec, 'bun'), '');
+    chmodSync(join(noExec, 'bun'), 0o644);
+    writeFileSync(join(plain, 'bun'), '');
+    chmodSync(join(plain, 'bun'), 0o755);
+    // A file without the execute bit is skipped.
+    assert.equal(findInPath('bun', { env: { PATH: [noExec, plain].join(':') }, platform: 'linux' }), join(plain, 'bun'));
+    assert.equal(findInPath('bun', { env: { PATH: noExec }, platform: 'linux' }), null);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  // Windows (simulated file system): "Path" with ";" and quotes; bun.cmd cannot
+  // be spawned without a shell, bun.exe can.
+  const files = new Set(['C:\\npm\\bun.cmd', 'C:\\Program Files\\Bun\\bun.exe']);
+  const isExecutable = (candidate) => files.has(candidate);
+  assert.equal(findInPath('bun', { env: { Path: 'C:\\npm;"C:\\Program Files\\Bun"' }, platform: 'win32', isExecutable }),
+    'C:\\Program Files\\Bun\\bun.exe');
+  assert.equal(findInPath('bun', { env: { Path: 'C:\\npm' }, platform: 'win32', isExecutable }), null);
+});

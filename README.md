@@ -120,7 +120,13 @@ bun casty.js https://google.com
 bun casty.js https://youtube.com
 bun casty.js   # opens home page
 bun casty.js example.com -- --lang=ja   # arguments after -- go to the browser
+CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # choose the browser
 ```
+
+The browser is `CASTY_BROWSER`, else `BUN_CHROME_PATH`, else the first one
+found automatically. A browser ending in `.js`, `.ts` or a similar extension
+is run with Bun (or, without Bun, with the runtime running casty); anything
+else is executed directly.
 
 ### Keybindings
 

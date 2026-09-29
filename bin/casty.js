@@ -50,6 +50,12 @@ Address bar:
   Type a URL or search query, then Enter
   /b [query]       Search bookmarks
 
+Environment:
+  CASTY_BROWSER    Browser to launch (checked first)
+  BUN_CHROME_PATH  Browser to launch if CASTY_BROWSER is not set
+                   .js/.ts (and similar) browsers run with Bun,
+                   or with the runtime running casty if Bun is not found
+
 Config: ~/.casty/config.json
 Keys:   ~/.casty/keys.json
 
@@ -108,7 +114,7 @@ if (!process.env.CASTY_ENSURE_CHROME) {
 }
 
 import { startBrowser, setupPage, startScreencast, stopScreencast } from '../lib/browser.js';
-import { sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, transport, setDisplaySize, disableDedup } from '../lib/kitty.js';
+import { sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
 import { enableMouse, disableMouse, startInputHandling } from '../lib/input.js';
 import { loadKeyBindings } from '../lib/keys.js';
 import { loadConfig } from '../lib/config.js';
@@ -236,6 +242,7 @@ async function main() {
   // format: auto → PNG for inline, JPEG (adaptive) for file transfer
   // jpeg mode: fast JPEG during activity, PNG refinement when static
   const fmt = config.format || 'auto';
+  const transport = detectTransport();
   const screenshotFormat = fmt === 'auto'
     ? (transport === 'file' ? 'jpeg' : 'png')
     : fmt;

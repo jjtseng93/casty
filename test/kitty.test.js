@@ -3,13 +3,16 @@ import test from 'node:test';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-const moduleUrl = new URL('../lib/kitty.js', import.meta.url);
+import * as kitty from '../lib/kitty.js';
+
 const CURSOR_HOME = '\x1b[2;1H';
 
 function tmuxWrap(seq) {
   return `\x1bPtmux;${seq.replaceAll('\x1b', '\x1b\x1b')}\x1b\\`;
 }
 
+// kitty.js reads process.env when it is used, so a test only sets the
+// environment (and resets frame deduplication) around its calls.
 async function withKitty(env, fn) {
   const saved = {
     TMUX: process.env.TMUX,
@@ -22,10 +25,10 @@ async function withKitty(env, fn) {
   if (env.TERM_PROGRAM === undefined) delete process.env.TERM_PROGRAM;
   else process.env.TERM_PROGRAM = env.TERM_PROGRAM;
 
-  const mod = await import(`${moduleUrl.href}?test=${Date.now()}-${Math.random()}`);
+  kitty.resetFrameCache();
 
   try {
-    return await fn(mod);
+    return await fn(kitty);
   } finally {
     if (saved.TMUX === undefined) delete process.env.TMUX;
     else process.env.TMUX = saved.TMUX;

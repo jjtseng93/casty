@@ -120,7 +120,11 @@ bun casty.js https://google.com
 bun casty.js https://youtube.com
 bun casty.js   # ホームページを開く
 bun casty.js example.com -- --lang=ja   # -- 以降の引数はブラウザに渡される
+CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # ブラウザを指定
 ```
+
+ブラウザは `CASTY_BROWSER`、次に `BUN_CHROME_PATH` の順に使われ、どちらも未設定なら
+自動で検出されます。拡張子が `.js`・`.ts` などのブラウザは Bun（見つからなければ casty を実行しているランタイム）で実行し、それ以外は直接実行します。
 
 ### キーバインド
 

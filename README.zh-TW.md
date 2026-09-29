@@ -120,7 +120,11 @@ bun casty.js https://google.com
 bun casty.js https://youtube.com
 bun casty.js   # 開啟首頁
 bun casty.js example.com -- --lang=ja   # -- 之後的參數會傳給瀏覽器
+CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # 指定瀏覽器
 ```
+
+瀏覽器依序使用 `CASTY_BROWSER`、`BUN_CHROME_PATH`，都沒有設定時才自動尋找。
+副檔名是 `.js`、`.ts` 或類似的瀏覽器會用 Bun 執行（找不到 Bun 時用執行 casty 的 runtime），其他則直接執行。
 
 ### 快捷鍵
 
