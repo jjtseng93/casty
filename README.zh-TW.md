@@ -121,6 +121,7 @@ bun casty.js https://youtube.com
 bun casty.js   # 開啟首頁
 bun casty.js example.com -- --lang=ja   # -- 之後的參數會傳給瀏覽器
 CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # 指定瀏覽器
+CASTY_ZOOM=1.5 bun casty.js   # 在自動縮放之上再放大 1.5 倍
 ```
 
 瀏覽器依序使用 `CASTY_BROWSER`、`BUN_CHROME_PATH`，都沒有設定時才自動尋找。
@@ -131,6 +132,7 @@ CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # 指定瀏覽器
 | 按鍵 | 動作 |
 |------|------|
 | Alt+L | 網址列 |
+| Ctrl+E | 指令列 |
 | Alt+F / Ctrl+L | 提示模式（Vimium 風格） |
 | Alt+Left / Right | 上一頁 / 下一頁 |
 | Ctrl+U / Ctrl+K | 上一頁 / 下一頁（在網址列中則是剪下／還原游標前後的文字） |
@@ -147,6 +149,35 @@ CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # 指定瀏覽器
 ### 網址列
 
 按 **Alt+L** 開啟。輸入網址或搜尋關鍵字。`/b 關鍵字` 可搜尋書籤。
+
+### 指令列
+
+**Ctrl+E** 會把網址列變成 `cmd>` 提示字元，Enter 執行，Esc 取消。
+
+| 指令 | 動作 |
+|---|---|
+| `open <url\|query>` (`o`, `go`) | 開啟網址或搜尋 |
+| `back` (`b`) / `forward` (`f`) | 上一頁 / 下一頁 |
+| `reload` (`r`) | 重新載入 |
+| `home` | 首頁 |
+| `bookmark [query]` (`bm`) | 開啟第一個符合的書籤 |
+| `links` (`hints`, `l`) | 提示模式 |
+| `copy` (`c`) / `paste` (`p`) | 複製選取文字 / 貼上 |
+| `copyurl` (`yank`, `y`) | 複製目前網址 |
+| `pasteurl` (`pu`) | 把剪貼簿內容貼到網址列，可以修改或按 Enter 送出 |
+| `find [文字]` (`/文字`) | 在頁面中尋找；只打 `find` 跳到下一個 |
+| `zoom [n\|n%\|+\|-\|reset]` (`z`) | 顯示或設定縮放，1 是自動縮放 |
+| `help` (`?`) | 列出指令 |
+| `quit` (`q`) | 結束 |
+
+網址列和指令列都可以：
+
+- **上 / 下鍵**：翻這個模式的歷史，存在 `~/.casty/history.json`
+- **點擊**提示字元（` > ` 或 `cmd>`）：在兩種模式間切換，已輸入的文字保留；點文字則移動游標
+- **雙擊**網址列：左 1/3 是下一筆歷史，中間是上一筆，右 1/3 等同 Enter
+
+`zoom 1.5`、`zoom 150%`、`zoom +`、`zoom -` 會立即生效；`CASTY_ZOOM` 設定啟動時的縮放。
+`~/.casty/keys.json` 還可以綁定這些動作：`command`、`reload`、`home`、`copy_url`、`paste_url`、`zoom_in`、`zoom_out`、`zoom_reset`。
 
 ### 書籤
 

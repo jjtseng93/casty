@@ -121,6 +121,7 @@ bun casty.js https://youtube.com
 bun casty.js   # ホームページを開く
 bun casty.js example.com -- --lang=ja   # -- 以降の引数はブラウザに渡される
 CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # ブラウザを指定
+CASTY_ZOOM=1.5 bun casty.js   # 自動ズームに加えて 1.5 倍に拡大
 ```
 
 ブラウザは `CASTY_BROWSER`、次に `BUN_CHROME_PATH` の順に使われ、どちらも未設定なら
@@ -131,6 +132,7 @@ CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # ブラウザを指定
 | キー | アクション |
 |------|-----------|
 | Alt+L | アドレスバー |
+| Ctrl+E | コマンドライン |
 | Alt+F / Ctrl+L | ヒントモード（Vimium 風） |
 | Alt+Left / Right | 戻る / 進む |
 | Ctrl+U / Ctrl+K | 戻る / 進む（アドレスバーではカーソル前後の文字列を切り取り／復元） |
@@ -147,6 +149,35 @@ CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # ブラウザを指定
 ### アドレスバー
 
 **Alt+L** で開く。URL または検索クエリを入力。`/b クエリ` でブックマーク検索。
+
+### コマンドライン
+
+**Ctrl+E** でアドレスバーが `cmd>` プロンプトになります。Enter で実行、Esc でキャンセル。
+
+| コマンド | 動作 |
+|---|---|
+| `open <url\|query>` (`o`, `go`) | URL を開く／検索 |
+| `back` (`b`) / `forward` (`f`) | 戻る / 進む |
+| `reload` (`r`) | 再読み込み |
+| `home` | ホームページ |
+| `bookmark [query]` (`bm`) | 最初に一致したブックマークを開く |
+| `links` (`hints`, `l`) | ヒントモード |
+| `copy` (`c`) / `paste` (`p`) | 選択テキストをコピー / 貼り付け |
+| `copyurl` (`yank`, `y`) | ページの URL をコピー |
+| `pasteurl` (`pu`) | クリップボードの内容をアドレスバーに貼り付け（編集または Enter で送信） |
+| `find [テキスト]` (`/テキスト`) | ページ内検索。`find` だけで次の一致へ |
+| `zoom [n\|n%\|+\|-\|reset]` (`z`) | ズームの表示・設定（1 が自動ズーム） |
+| `help` (`?`) | コマンド一覧 |
+| `quit` (`q`) | 終了 |
+
+アドレスバーとコマンドラインの共通操作：
+
+- **↑ / ↓**：そのモードの履歴をたどる（`~/.casty/history.json` に保存）
+- プロンプト（` > ` または `cmd>`）を**クリック**：入力中のテキストを保ったまま 2 つのモードを切り替え。テキストのクリックはカーソル移動
+- バーを**ダブルクリック**：左 1/3 で次の履歴、中央で前の履歴、右 1/3 で Enter
+
+`zoom 1.5`・`zoom 150%`・`zoom +`・`zoom -` はすぐに反映されます。`CASTY_ZOOM` は起動時のズームを設定します。
+`~/.casty/keys.json` では次のアクションも割り当てられます：`command`、`reload`、`home`、`copy_url`、`paste_url`、`zoom_in`、`zoom_out`、`zoom_reset`。
 
 ### ブックマーク
 

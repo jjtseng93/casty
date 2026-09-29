@@ -121,6 +121,7 @@ bun casty.js https://youtube.com
 bun casty.js   # opens home page
 bun casty.js example.com -- --lang=ja   # arguments after -- go to the browser
 CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # choose the browser
+CASTY_ZOOM=1.5 bun casty.js   # zoom pages 1.5x on top of the automatic zoom
 ```
 
 The browser is `CASTY_BROWSER`, else `BUN_CHROME_PATH`, else the first one
@@ -133,6 +134,7 @@ else is executed directly.
 | Key | Action |
 |-----|--------|
 | Alt+L | Address bar |
+| Ctrl+E | Command line |
 | Alt+F / Ctrl+L | Hint mode (Vimium-style) |
 | Alt+Left / Right | Back / Forward |
 | Ctrl+U / Ctrl+K | Back / Forward (in the address bar, toggle the text before / after the cursor) |
@@ -149,6 +151,35 @@ Customizable via `~/.casty/keys.json`.
 ### Address Bar
 
 **Alt+L** to open. Type a URL or search query. `/b query` searches bookmarks.
+
+### Command Line
+
+**Ctrl+E** turns the address bar into a `cmd>` prompt. Enter runs the command; Esc cancels.
+
+| Command | Action |
+|---|---|
+| `open <url\|query>` (`o`, `go`) | Open a URL or search |
+| `back` (`b`) / `forward` (`f`) | Back / Forward |
+| `reload` (`r`) | Reload |
+| `home` | Home page |
+| `bookmark [query]` (`bm`) | Open the first matching bookmark |
+| `links` (`hints`, `l`) | Hint mode |
+| `copy` (`c`) / `paste` (`p`) | Copy selected text / Paste |
+| `copyurl` (`yank`, `y`) | Copy the page URL |
+| `pasteurl` (`pu`) | Put the clipboard into the address bar, to edit or send with Enter |
+| `find [text]` (`/text`) | Find text in the page; `find` alone goes to the next match |
+| `zoom [n\|n%\|+\|-\|reset]` (`z`) | Show or set the zoom; 1 is the automatic zoom |
+| `help` (`?`) | List commands |
+| `quit` (`q`) | Quit |
+
+In both the address bar and the command line:
+
+- **Up / Down** walk the history of that mode, kept in `~/.casty/history.json`
+- **Clicking** the prompt (` > ` or `cmd>`) switches between the two modes, keeping the text; clicking the text moves the cursor
+- **Double-clicking** the bar: left third = next history entry, middle = previous, right = Enter
+
+`zoom 1.5`, `zoom 150%`, `zoom +` and `zoom -` apply at once; `CASTY_ZOOM` sets the zoom at start-up.
+Other actions for `~/.casty/keys.json`: `command`, `reload`, `home`, `copy_url`, `paste_url`, `zoom_in`, `zoom_out`, `zoom_reset`.
 
 ### Bookmarks
 

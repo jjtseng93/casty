@@ -63,6 +63,9 @@ Options:
 
 Key bindings:
   Alt+L            Address bar
+  Ctrl+E           Command line (cmd>): open, back, forward, reload, home,
+                   bookmark, links, copy, copyurl, paste, pasteurl, find,
+                   zoom, help, quit
   Alt+F / Ctrl+L   Hint mode (Vimium-style link navigation)
   Alt+C            Copy selected text
   Ctrl+V           Paste from clipboard
@@ -70,7 +73,10 @@ Key bindings:
   Ctrl+U / Ctrl+K  Back / Forward
   Ctrl+Q           Quit
 
-Address bar:
+Address bar and command line:
+  Up / Down        History (kept per mode in ~/.casty/history.json)
+  Click > or cmd>  Switch between address and command, keeping the text
+  Double-click     Left third: next entry; middle: previous; right: Enter
   Ctrl+U / Ctrl+K  Toggle text before / after the cursor
   Type a URL or search query, then Enter
   /b [query]       Search bookmarks
@@ -80,6 +86,8 @@ Environment:
   BUN_CHROME_PATH  Browser to launch if CASTY_BROWSER is not set
                    .js/.ts (and similar) browsers run with Bun,
                    or with the runtime running casty if Bun is not found
+  CASTY_ZOOM       Zoom factor on top of the automatic one (e.g. 1.5);
+                   the zoom command changes it while running
 
 Config: ~/.casty/config.json
 Keys:   ~/.casty/keys.json
@@ -149,9 +157,14 @@ const DELAYED_CAPTURE_MS = [0, 300, 1000];
 // Larger cells → zoom in, smaller cells → zoom out
 const REF_CELL_WIDTH = 8;
 
+// The zoom factor multiplies the automatic zoom: 2 shows pages twice as large
+// (half as many CSS pixels across), 0.8 smaller. CASTY_ZOOM sets it at
+// start-up; the "zoom" command (Ctrl+E) changes it.
+let zoomFactor = Number(process.env.CASTY_ZOOM) > 0 ? Number(process.env.CASTY_ZOOM) : 1;
+
 // Auto-calculate zoom from cell size
 function calcZoom(cellWidth) {
-  return cellWidth / REF_CELL_WIDTH;
+  return cellWidth / REF_CELL_WIDTH * zoomFactor;
 }
 
 // Query terminal pixel size via CSI 14t
@@ -281,7 +294,12 @@ async function main() {
     onFrame,
   });
 
-  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, forceCapture);
+  const zoomControl = {
+    get: () => zoomFactor,
+    // Re-run the resize path: it recomputes the zoom and the viewport
+    set: (factor) => { zoomFactor = factor; return handleResize(); },
+  };
+  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, forceCapture, zoomControl);
   urlBar.render();
 
   // Force capture on page load events (debounced — multiple events fire close together)

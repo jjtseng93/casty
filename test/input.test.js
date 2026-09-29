@@ -20,8 +20,8 @@ test('dispatchClick sends a matched pressed/released pair in CSS pixels', async 
   await dispatchClick(client, 12.5, 34.5, { clickCount: 2 });
 
   assert.equal(calls[0].method, 'Runtime.evaluate');
-  assert.match(calls[0].params.expression, /left:12\.5px/);
-  assert.match(calls[0].params.expression, /top:34\.5px/);
+  // The marker is placed in layout coordinates, converted from the input ones.
+  assert.match(calls[0].params.expression, /toLayout\(12\.5, 34\.5\)/);
   assert.deepEqual(calls.slice(1), [
     {
       method: 'Input.dispatchMouseEvent',
@@ -64,4 +64,12 @@ test('showClickMarker creates a non-interactive temporary marker', async () => {
   assert.equal(calls[0].method, 'Runtime.evaluate');
   assert.match(calls[0].params.expression, /pointer-events:none/);
   assert.match(calls[0].params.expression, /setTimeout\(\(\) => marker\.remove\(\), 450\)/);
+});
+
+test('the click marker undoes the page zoom (visualViewport.scale)', async () => {
+  let expression = '';
+  await showClickMarker({ async send(method, params) { expression = params.expression; } }, 100, 50);
+  const toLayout = new Function('window', `${expression.match(/const toLayout[\s\S]*?\};/)[0]} return toLayout;`);
+  assert.deepEqual(toLayout({ visualViewport: { scale: 2, offsetLeft: 0, offsetTop: 0 } })(100, 50), [50, 25]);
+  assert.deepEqual(toLayout({})(100, 50), [100, 50]);
 });
