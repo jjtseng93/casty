@@ -2,19 +2,13 @@
   "name": "@drxiaozhi/casty",
   "version": "1.2.2",
   "description": "TTY web browser using raw CDP and Kitty graphics protocol",
-  "main": "bin/casty.js",
+  "main": "./index.js",
   "bin": {
-    "casty": "bin/casty.js"
+    "casty": "./index.js"
   },
-  "files": [
-    "bin/",
-    "lib/",
-    "LICENSE"
-  ],
   "scripts": {
-    "start": "node bin/casty.js",
-    "test": "node --test",
-    "postinstall": "echo 'Run casty to auto-install Chrome Headless Shell to ~/.casty/browsers/'"
+    "start": "bun ./index.js",
+    "check": "node --check ./bin/casty.js"
   },
   "keywords": [
     "browser",
@@ -34,9 +28,6 @@
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "ws": "^8.0.0"
+    "bun": ">=1.4.2"
   }
 }
