@@ -69,6 +69,12 @@ test('splitBrowserArgs passes everything after -- to the browser', async () => {
   assert.deepEqual(splitBrowserArgs(['--', '--foo']), { args: [], browserArgs: ['--foo'] });
   // Only the first -- separates; later ones are browser arguments.
   assert.deepEqual(splitBrowserArgs(['a', '--', 'b', '--', 'c']), { args: ['a'], browserArgs: ['b', '--', 'c'] });
+  // Bun drops a leading "--": an unknown leading option starts the browser arguments...
+  const own = new Set(['--help', '--version']);
+  assert.deepEqual(splitBrowserArgs(['--mobile', '--lang=ja'], own), { args: [], browserArgs: ['--mobile', '--lang=ja'] });
+  // ...but casty's own options stay casty's.
+  assert.deepEqual(splitBrowserArgs(['--help'], own), { args: ['--help'], browserArgs: [] });
+  assert.deepEqual(splitBrowserArgs([], own), { args: [], browserArgs: [] });
 });
 
 test('CASTY_BROWSER, then BUN_CHROME_PATH, choose the browser before any search', async () => {

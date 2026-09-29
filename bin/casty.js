@@ -14,8 +14,6 @@ import { dirname, join } from 'node:path';
 import { splitBrowserArgs } from '../lib/chrome.js';
 import { ensureChrome } from '../lib/install.js';
 
-// Arguments after "--" are passed to the browser.
-const { args: cliArgs, browserArgs } = splitBrowserArgs(process.argv.slice(2));
 const packageDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const readmeOptions = {
@@ -26,6 +24,11 @@ const readmeOptions = {
   '--readme-wui-zh': ['--wui', 'README.zh-TW.md'],
   '--readme-wui-ja': ['--wui', 'README.ja.md'],
 };
+// casty's own options; any other leading option goes to the browser.
+const ownOptions = new Set(['--help', '-h', '--version', '-v', '-V', ...Object.keys(readmeOptions)]);
+
+// Arguments after "--" are passed to the browser.
+const { args: cliArgs, browserArgs } = splitBrowserArgs(process.argv.slice(2), ownOptions);
 if (Object.hasOwn(readmeOptions, cliArgs[0])) {
   const [mode, readme] = readmeOptions[cliArgs[0]];
   const child = spawnSync('bun',
