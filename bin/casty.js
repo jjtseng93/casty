@@ -37,9 +37,10 @@ if (Object.hasOwn(readmeOptions, cliArgs[0])) {
   process.exit(child.status ?? 1);
 }
 
+const pkg = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8'));
+
 // --version / -v / -V
 if (['--version', '-v', '-V'].includes(cliArgs[0])) {
-  const pkg = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'));
   console.log(`casty ${pkg.version}`);
   process.exit(0);
 }
@@ -353,6 +354,8 @@ async function main() {
     clearScreen();                 // Clear after everything is stopped — no re-render risk
     cleanupTmp();
     printControlsHelp();
+    // Last line on screen, so it is clear which casty ran (and whether to update).
+    console.log(`casty ${pkg.version}\n`);
     process.exit(0);
   }
 
