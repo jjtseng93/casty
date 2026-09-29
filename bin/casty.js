@@ -7,11 +7,11 @@ process.stdout.on('error', (err) => {
 });
 process.stderr.on('error', () => {});
 
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { splitBrowserArgs } from '../lib/chrome.js';
+import { ensureChrome } from '../lib/install.js';
 
 // Arguments after "--" are passed to the browser.
 const { args: cliArgs, browserArgs } = splitBrowserArgs(process.argv.slice(2));
@@ -100,18 +100,8 @@ function printControlsHelp() {
   console.log(CONTROLS_HELP);
 }
 
-// Ensure Chrome is installed (skip if launched from bin/casty shell script)
-if (!process.env.CASTY_ENSURE_CHROME) {
-  const __bin = dirname(fileURLToPath(import.meta.url));
-  try {
-    execFileSync('bash', [join(__bin, 'casty')], {
-      stdio: ['ignore', 'inherit', 'inherit'],
-      env: { ...process.env, CASTY_ENSURE_CHROME: '1' },
-    });
-  } catch (err) {
-    if (err.status) process.exit(err.status);
-  }
-}
+// Ensure a browser is installed (downloads Chrome Headless Shell on first run).
+await ensureChrome();
 
 import { startBrowser, setupPage, startScreencast, stopScreencast } from '../lib/browser.js';
 import { sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
@@ -329,10 +319,14 @@ async function main() {
   let resizeTimer = null;
   let resizing = false;
   let pendingResize = false;
-  process.on('SIGWINCH', () => {
+  const onResize = () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(handleResize, 150);
-  });
+  };
+  process.on('SIGWINCH', onResize);
+  // Windows has no reliable SIGWINCH; the TTY's resize event works everywhere
+  // (both firing together is coalesced by the debounce).
+  process.stdout.on('resize', onResize);
   // Direct screenshot — bypasses screencast's capturing flag
   const screenshotOpts = { format: screenshotFormat, optimizeForSpeed: true, captureBeyondViewport: false };
   if (screenshotFormat === 'jpeg') screenshotOpts.quality = 85;

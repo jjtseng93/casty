@@ -26,7 +26,10 @@ exit 0
   return binPath;
 }
 
-test('corrupt binary fails --version check', () => {
+// The fake browsers are shell scripts: POSIX only.
+const POSIX = { skip: process.platform === 'win32' && 'shell-script fake browsers' };
+
+test('corrupt binary fails --version check', POSIX, () => {
   const dir = join(tmpdir(), `casty-test-${Date.now()}-corrupt`);
   mkdirSync(dir, { recursive: true });
   try {
@@ -45,7 +48,7 @@ test('corrupt binary fails --version check', () => {
   }
 });
 
-test('valid binary passes --version check', () => {
+test('valid binary passes --version check', POSIX, () => {
   const dir = join(tmpdir(), `casty-test-${Date.now()}-valid`);
   mkdirSync(dir, { recursive: true });
   try {
@@ -55,16 +58,6 @@ test('valid binary passes --version check', () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-});
-
-test('unzip failure is detectable by exit code', () => {
-  let threw = false;
-  try {
-    execFileSync('unzip', ['-q', '/nonexistent.zip', '-d', '/tmp'], { stdio: 'pipe' });
-  } catch {
-    threw = true;
-  }
-  assert.ok(threw, 'unzip with nonexistent file should fail');
 });
 
 test('splitBrowserArgs passes everything after -- to the browser', async () => {
@@ -103,8 +96,9 @@ test('findInPath finds executables on POSIX and only .exe/.com on Windows', asyn
   const { findInPath } = await import('../lib/chrome.js');
   const root = join(tmpdir(), `casty-path-${process.pid}`);
   const [plain, noExec] = ['plain', 'noexec'].map((dir) => join(root, dir));
-  for (const dir of [plain, noExec]) mkdirSync(dir, { recursive: true });
-  try {
+  // Execute bits and ":"-separated PATH: POSIX only.
+  if (process.platform !== 'win32') try {
+    for (const dir of [plain, noExec]) mkdirSync(dir, { recursive: true });
     writeFileSync(join(noExec, 'bun'), '');
     chmodSync(join(noExec, 'bun'), 0o644);
     writeFileSync(join(plain, 'bun'), '');
@@ -122,4 +116,6 @@ test('findInPath finds executables on POSIX and only .exe/.com on Windows', asyn
   assert.equal(findInPath('bun', { env: { Path: 'C:\\npm;"C:\\Program Files\\Bun"' }, platform: 'win32', isExecutable }),
     'C:\\Program Files\\Bun\\bun.exe');
   assert.equal(findInPath('bun', { env: { Path: 'C:\\npm' }, platform: 'win32', isExecutable }), null);
+  assert.equal(findInPath('bun', { env: { path: 'C:\\Program Files\\Bun' }, platform: 'win32', isExecutable }),
+    'C:\\Program Files\\Bun\\bun.exe');
 });

@@ -205,11 +205,11 @@ CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # 指定瀏覽器
 - 透過 CSI 14t 偵測終端機像素尺寸，自動調整縮放
 
 ```
-bin/casty          Shell 包裝腳本（安裝/更新 Chrome）
 bin/casty.js       進入點（終端機、縮放、調整大小）
 lib/browser.js     CDP 瀏覽器控制、畫面擷取
 lib/cdp.js         輕量 CDP WebSocket 用戶端
 lib/chrome.js      Chrome 偵測、啟動、設定檔清理
+lib/install.js     安裝/更新 Chrome Headless Shell
 lib/kitty.js       Kitty graphics protocol（file/inline）
 lib/input.js       滑鼠/鍵盤處理
 lib/hints.js       Vimium 風格提示模式

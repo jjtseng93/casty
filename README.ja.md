@@ -205,11 +205,11 @@ CASTY_BROWSER=/path/to/buninu-browser.js bun casty.js   # ブラウザを指定
 - CSI 14t でターミナルのピクセルサイズを取得して自動ズーム
 
 ```
-bin/casty          シェルラッパー（Chrome インストール/更新）
 bin/casty.js       エントリポイント（ターミナル、ズーム、リサイズ）
 lib/browser.js     CDP ブラウザ制御、フレームキャプチャ
 lib/cdp.js         軽量 CDP WebSocket クライアント
 lib/chrome.js      Chrome 検出、起動、プロファイルクリーンアップ
+lib/install.js     Chrome Headless Shell のインストール/更新
 lib/kitty.js       Kitty graphics protocol（file/inline）
 lib/input.js       マウス/キーボード処理
 lib/hints.js       Vimium 風ヒントモード

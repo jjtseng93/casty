@@ -12,7 +12,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "start": "./bin/casty",
+    "start": "node bin/casty.js",
     "test": "node --test",
     "postinstall": "echo 'Run casty to auto-install Chrome Headless Shell to ~/.casty/browsers/'"
   },

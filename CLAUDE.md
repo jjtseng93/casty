@@ -41,6 +41,7 @@ bin/casty.js         Entry point, terminal setup, main loop
 lib/browser.js       CDP browser control, hybrid frame capture, stealth patches
 lib/cdp.js           Lightweight CDP WebSocket client
 lib/chrome.js        Chrome binary detection and process launch
+lib/install.js       Chrome Headless Shell install and daily background update
 lib/input.js         Keyboard/mouse input handling, key bindings, clipboard
 lib/kitty.js         Kitty graphics protocol output (file/inline transfer)
 lib/urlbar.js        Address bar (always visible on line 1)

@@ -207,11 +207,11 @@ The whole thing is about 1200 lines of JavaScript. Here's what's going on under 
 - Terminal pixel size is detected via CSI 14t for auto-zoom
 
 ```
-bin/casty          Shell wrapper (Chrome install/update)
 bin/casty.js       Entry point (terminal, zoom, resize)
 lib/browser.js     CDP browser control, frame capture
 lib/cdp.js         Lightweight CDP WebSocket client
 lib/chrome.js      Chrome detection, launch, profile cleanup
+lib/install.js     Chrome Headless Shell install/update
 lib/kitty.js       Kitty graphics protocol (file/inline)
 lib/input.js       Mouse/keyboard handling
 lib/hints.js       Vimium-style hint mode
