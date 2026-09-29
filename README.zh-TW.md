@@ -119,6 +119,7 @@ cd casty/bin
 bun casty.js https://google.com
 bun casty.js https://youtube.com
 bun casty.js   # 開啟首頁
+bun casty.js example.com -- --lang=ja   # -- 之後的參數會傳給瀏覽器
 ```
 
 ### 快捷鍵

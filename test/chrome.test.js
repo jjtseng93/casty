@@ -66,3 +66,14 @@ test('unzip failure is detectable by exit code', () => {
   }
   assert.ok(threw, 'unzip with nonexistent file should fail');
 });
+
+test('splitBrowserArgs passes everything after -- to the browser', async () => {
+  const { splitBrowserArgs } = await import('../lib/chrome.js');
+  assert.deepEqual(splitBrowserArgs(['example.com']), { args: ['example.com'], browserArgs: [] });
+  assert.deepEqual(splitBrowserArgs(['example.com', '--', '--lang=ja', '--foo']),
+    { args: ['example.com'], browserArgs: ['--lang=ja', '--foo'] });
+  // No URL: the home page opens, flags still go to the browser.
+  assert.deepEqual(splitBrowserArgs(['--', '--foo']), { args: [], browserArgs: ['--foo'] });
+  // Only the first -- separates; later ones are browser arguments.
+  assert.deepEqual(splitBrowserArgs(['a', '--', 'b', '--', 'c']), { args: ['a'], browserArgs: ['b', '--', 'c'] });
+});

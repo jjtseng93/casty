@@ -119,6 +119,7 @@ cd casty/bin
 bun casty.js https://google.com
 bun casty.js https://youtube.com
 bun casty.js   # opens home page
+bun casty.js example.com -- --lang=ja   # arguments after -- go to the browser
 ```
 
 ### Keybindings

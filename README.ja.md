@@ -119,6 +119,7 @@ cd casty/bin
 bun casty.js https://google.com
 bun casty.js https://youtube.com
 bun casty.js   # ホームページを開く
+bun casty.js example.com -- --lang=ja   # -- 以降の引数はブラウザに渡される
 ```
 
 ### キーバインド

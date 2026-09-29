@@ -11,23 +11,29 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { splitBrowserArgs } from '../lib/chrome.js';
+
+// Arguments after "--" are passed to the browser.
+const { args: cliArgs, browserArgs } = splitBrowserArgs(process.argv.slice(2));
 
 // --version / -v
-if (process.argv[2] === '--version' || process.argv[2] === '-v') {
+if (cliArgs[0] === '--version' || cliArgs[0] === '-v') {
   const pkg = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'));
   console.log(`casty ${pkg.version}`);
   process.exit(0);
 }
 
 // --help / -h
-if (process.argv[2] === '--help' || process.argv[2] === '-h') {
+if (cliArgs[0] === '--help' || cliArgs[0] === '-h') {
   console.log(`casty - A real Chrome browser in your terminal
 
-Usage: casty [url] [options]
+Usage: casty [url] [options] [-- browser-flags...]
 
 Options:
   --help, -h       Show this help
   --version, -v    Show version
+  -- <flags>       Pass the remaining arguments to the browser
+                   (e.g. casty example.com -- --lang=ja)
 
 Key bindings:
   Alt+L            Address bar
@@ -110,7 +116,7 @@ import { toURL } from '../lib/urlbar.js';
 
 const config = loadConfig();
 const bindings = loadKeyBindings();
-const url = toURL(process.argv[2] || config.homeUrl);
+const url = toURL(cliArgs[0] || config.homeUrl);
 
 const TERM_QUERY_TIMEOUT = 1000;  // CSI 14t response timeout (ms)
 
@@ -200,7 +206,7 @@ async function main() {
   // getTermInfo() must complete fully (prevent CSI 14t response leak)
   const mediaP = config.media ? startMedia(config) : null;
   const term = await getTermInfo();
-  const browser = await startBrowser(term.zoom);
+  const browser = await startBrowser(term.zoom, browserArgs);
   const media = mediaP ? await mediaP : null;
 
   // Reserve line 1 for URL bar, use the rest for browser display
