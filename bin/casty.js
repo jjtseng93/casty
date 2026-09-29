@@ -16,8 +16,8 @@ import { splitBrowserArgs } from '../lib/chrome.js';
 // Arguments after "--" are passed to the browser.
 const { args: cliArgs, browserArgs } = splitBrowserArgs(process.argv.slice(2));
 
-// --version / -v
-if (cliArgs[0] === '--version' || cliArgs[0] === '-v') {
+// --version / -v / -V
+if (['--version', '-v', '-V'].includes(cliArgs[0])) {
   const pkg = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'));
   console.log(`casty ${pkg.version}`);
   process.exit(0);
@@ -31,7 +31,8 @@ Usage: casty [url] [options] [-- browser-flags...]
 
 Options:
   --help, -h       Show this help
-  --version, -v    Show version
+  --version, -v, -V
+                   Show version
   -- <flags>       Pass the remaining arguments to the browser
                    (e.g. casty example.com -- --lang=ja)
 
