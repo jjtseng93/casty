@@ -100,6 +100,7 @@ const CONTROLS_HELP = `casty controls / casty 操作 / casty 操作方法
 
 [English]
   Alt+L             Address bar
+  Ctrl+E            Command line (cmd>)
   Alt+F / Ctrl+L    Link hints
   Alt+C             Copy selected text
   Ctrl+V            Paste
@@ -110,6 +111,7 @@ const CONTROLS_HELP = `casty controls / casty 操作 / casty 操作方法
 
 [中文]
   Alt+L             地址欄
+  Ctrl+E            指令列（cmd>）
   Alt+F / Ctrl+L    連結提示
   Alt+C             複製選取文字
   Ctrl+V            貼上
@@ -120,6 +122,7 @@ const CONTROLS_HELP = `casty controls / casty 操作 / casty 操作方法
 
 [日本語]
   Alt+L             アドレスバー
+  Ctrl+E            コマンドライン（cmd>）
   Alt+F / Ctrl+L    リンクヒント
   Alt+C             選択した文字をコピー
   Ctrl+V            貼り付け
