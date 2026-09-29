@@ -8,6 +8,7 @@ process.stdout.on('error', (err) => {
 process.stderr.on('error', () => {});
 
 import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { splitBrowserArgs } from '../lib/chrome.js';
@@ -15,6 +16,23 @@ import { ensureChrome } from '../lib/install.js';
 
 // Arguments after "--" are passed to the browser.
 const { args: cliArgs, browserArgs } = splitBrowserArgs(process.argv.slice(2));
+const packageDir = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+const readmeOptions = {
+  '--readme-tui': ['--tui', 'README.md'],
+  '--readme-tui-zh': ['--tui', 'README.zh-TW.md'],
+  '--readme-tui-ja': ['--tui', 'README.ja.md'],
+  '--readme-wui': ['--wui', 'README.md'],
+  '--readme-wui-zh': ['--wui', 'README.zh-TW.md'],
+  '--readme-wui-ja': ['--wui', 'README.ja.md'],
+};
+if (Object.hasOwn(readmeOptions, cliArgs[0])) {
+  const [mode, readme] = readmeOptions[cliArgs[0]];
+  const child = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx',
+    ['jsmdcui', mode, readme, '--kitty'], { cwd: packageDir, stdio: 'inherit' });
+  if (child.error) console.error(`casty: failed to start jsmdcui: ${child.error.message}`);
+  process.exit(child.status ?? 1);
+}
 
 // --version / -v / -V
 if (['--version', '-v', '-V'].includes(cliArgs[0])) {
@@ -33,6 +51,10 @@ Options:
   --help, -h       Show this help
   --version, -v, -V
                    Show version
+  --readme-tui[-zh|-ja]
+                   Open the English, Chinese, or Japanese README in a terminal UI
+  --readme-wui[-zh|-ja]
+                   Open the English, Chinese, or Japanese README in a web UI
   -- <flags>       Pass the remaining arguments to the browser
                    (e.g. casty example.com -- --lang=ja)
 

@@ -8,6 +8,8 @@
   },
   "scripts": {
     "start": "bun ./index.js",
+    "tui": "bun ./index.js --readme-tui-zh",
+    "wui": "bun ./index.js --readme-wui-zh",
     "check": "node --check ./bin/casty.js"
   },
   "keywords": [
