@@ -169,6 +169,7 @@ Customizable via `~/.casty/keys.json`.
 | `pasteurl` (`pu`) | Put the clipboard into the address bar, to edit or send with Enter |
 | `download` (`dl`, `save`) | Save the page as the browser received it to the system Downloads folder |
 | `find [text]` (`/text`) | Find text in the page; `find` alone goes to the next match |
+| `eruda` (`devtools`) | Show or hide the [eruda](https://github.com/liriliri/eruda) console in the page (loaded from a CDN, needs network) |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | Show or set the zoom; 1 is the automatic zoom |
 | `help` (`?`) | List commands |
 | `quit` (`q`) | Quit |
@@ -180,7 +181,7 @@ In both the address bar and the command line:
 - **Double-clicking** the bar: left third = next history entry, middle = previous, right = Enter
 
 `zoom 1.5`, `zoom 150%`, `zoom +` and `zoom -` apply at once; `CASTY_ZOOM` sets the zoom at start-up.
-Other actions for `~/.casty/keys.json`: `command`, `reload`, `home`, `copy_url`, `paste_url`, `download`, `zoom_in`, `zoom_out`, `zoom_reset`.
+Other actions for `~/.casty/keys.json`: `command`, `reload`, `home`, `copy_url`, `paste_url`, `download`, `eruda`, `zoom_in`, `zoom_out`, `zoom_reset`.
 
 ### Bookmarks
 

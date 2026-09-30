@@ -10,6 +10,7 @@ test('parseCommand resolves names and aliases case-insensitively, keeping the ar
   assert.deepEqual(parseCommand('/Hello world'), { name: 'find', arg: 'Hello world' });
   assert.deepEqual(parseCommand('find'), { name: 'find', arg: '' });
   assert.deepEqual(parseCommand('pu'), { name: 'pasteurl', arg: '' });
+  assert.deepEqual(parseCommand('devtools'), { name: 'eruda', arg: '' });
   assert.match(parseCommand('frobnicate').error, /Unknown command: frobnicate/);
   assert.match(parseCommand('   ').error, /Empty/);
 });

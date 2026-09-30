@@ -167,6 +167,7 @@ CASTY_ZOOM=1.5 bun casty.js   # 自動ズームに加えて 1.5 倍に拡大
 | `pasteurl` (`pu`) | クリップボードの内容をアドレスバーに貼り付け（編集または Enter で送信） |
 | `download` (`dl`, `save`) | ブラウザが受け取ったページをそのままシステムのダウンロードフォルダーに保存 |
 | `find [テキスト]` (`/テキスト`) | ページ内検索。`find` だけで次の一致へ |
+| `eruda` (`devtools`) | ページ内の [eruda](https://github.com/liriliri/eruda) コンソールを表示・非表示（CDN から読み込むためネットワークが必要） |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | ズームの表示・設定（1 が自動ズーム） |
 | `help` (`?`) | コマンド一覧 |
 | `quit` (`q`) | 終了 |
@@ -178,7 +179,7 @@ CASTY_ZOOM=1.5 bun casty.js   # 自動ズームに加えて 1.5 倍に拡大
 - バーを**ダブルクリック**：左 1/3 で次の履歴、中央で前の履歴、右 1/3 で Enter
 
 `zoom 1.5`・`zoom 150%`・`zoom +`・`zoom -` はすぐに反映されます。`CASTY_ZOOM` は起動時のズームを設定します。
-`~/.casty/keys.json` では次のアクションも割り当てられます：`command`、`reload`、`home`、`copy_url`、`paste_url`、`download`、`zoom_in`、`zoom_out`、`zoom_reset`。
+`~/.casty/keys.json` では次のアクションも割り当てられます：`command`、`reload`、`home`、`copy_url`、`paste_url`、`download`、`eruda`、`zoom_in`、`zoom_out`、`zoom_reset`。
 
 ### ブックマーク
 

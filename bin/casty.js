@@ -66,7 +66,7 @@ Key bindings:
   Alt+L            Address bar
   Ctrl+E           Command line (cmd>): open, back, forward, reload, home,
                    bookmark, links, copy, copyurl, paste, pasteurl,
-                   download, find, zoom, help, quit
+                   download, find, eruda, zoom, help, quit
   Alt+F / Ctrl+L   Hint mode (Vimium-style link navigation)
   Alt+C            Copy selected text
   Ctrl+V           Paste from clipboard

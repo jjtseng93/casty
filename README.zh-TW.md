@@ -167,6 +167,7 @@ CASTY_ZOOM=1.5 bun casty.js   # 在自動縮放之上再放大 1.5 倍
 | `pasteurl` (`pu`) | 把剪貼簿內容貼到網址列，可以修改或按 Enter 送出 |
 | `download` (`dl`, `save`) | 把瀏覽器收到的頁面原始內容存到系統的「下載」資料夾 |
 | `find [文字]` (`/文字`) | 在頁面中尋找；只打 `find` 跳到下一個 |
+| `eruda` (`devtools`) | 在頁面裡顯示或隱藏 [eruda](https://github.com/liriliri/eruda) 主控台（從 CDN 載入，需要網路） |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | 顯示或設定縮放，1 是自動縮放 |
 | `help` (`?`) | 列出指令 |
 | `quit` (`q`) | 結束 |
@@ -178,7 +179,7 @@ CASTY_ZOOM=1.5 bun casty.js   # 在自動縮放之上再放大 1.5 倍
 - **雙擊**網址列：左 1/3 是下一筆歷史，中間是上一筆，右 1/3 等同 Enter
 
 `zoom 1.5`、`zoom 150%`、`zoom +`、`zoom -` 會立即生效；`CASTY_ZOOM` 設定啟動時的縮放。
-`~/.casty/keys.json` 還可以綁定這些動作：`command`、`reload`、`home`、`copy_url`、`paste_url`、`download`、`zoom_in`、`zoom_out`、`zoom_reset`。
+`~/.casty/keys.json` 還可以綁定這些動作：`command`、`reload`、`home`、`copy_url`、`paste_url`、`download`、`eruda`、`zoom_in`、`zoom_out`、`zoom_reset`。
 
 ### 書籤
 
