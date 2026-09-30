@@ -167,7 +167,7 @@ Customizable via `~/.casty/keys.json`.
 | `copy` (`c`) / `paste` (`p`) | Copy selected text / Paste |
 | `copyurl` (`yank`, `y`) | Copy the page URL |
 | `pasteurl` (`pu`) | Put the clipboard into the address bar, to edit or send with Enter |
-| `download` (`dl`, `save`) | Save the page as the browser received it to `~/Downloads` |
+| `download` (`dl`, `save`) | Save the page as the browser received it to the system Downloads folder |
 | `find [text]` (`/text`) | Find text in the page; `find` alone goes to the next match |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | Show or set the zoom; 1 is the automatic zoom |
 | `help` (`?`) | List commands |

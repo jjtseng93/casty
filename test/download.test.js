@@ -4,6 +4,15 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { downloadPage, fileNameFor, uniquePath } from '../lib/download.js';
+import { downloadsDirectory } from '../lib/download-directory.js';
+
+test('Downloads uses the macOS default or relocated Windows known folder', () => {
+  assert.equal(downloadsDirectory({ platform: 'darwin', home: '/Users/Ada' }), '/Users/Ada/Downloads');
+  assert.equal(downloadsDirectory({ platform: 'win32', home: 'C:\\Users\\Ada', queryWindows: () => 'D:\\資料\\下載' }),
+    'D:\\資料\\下載');
+  assert.equal(downloadsDirectory({ platform: 'win32', home: 'C:\\Users\\Ada', queryWindows: () => null }),
+    'C:\\Users\\Ada\\Downloads');
+});
 
 test('fileNameFor uses the last path segment, else the host, and adds .html to pages', () => {
   assert.equal(fileNameFor('https://example.com/docs/report.pdf'), 'report.pdf');

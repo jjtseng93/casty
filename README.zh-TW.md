@@ -165,7 +165,7 @@ CASTY_ZOOM=1.5 bun casty.js   # 在自動縮放之上再放大 1.5 倍
 | `copy` (`c`) / `paste` (`p`) | 複製選取文字 / 貼上 |
 | `copyurl` (`yank`, `y`) | 複製目前網址 |
 | `pasteurl` (`pu`) | 把剪貼簿內容貼到網址列，可以修改或按 Enter 送出 |
-| `download` (`dl`, `save`) | 把瀏覽器收到的頁面原始內容存到 `~/Downloads` |
+| `download` (`dl`, `save`) | 把瀏覽器收到的頁面原始內容存到系統的「下載」資料夾 |
 | `find [文字]` (`/文字`) | 在頁面中尋找；只打 `find` 跳到下一個 |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | 顯示或設定縮放，1 是自動縮放 |
 | `help` (`?`) | 列出指令 |
