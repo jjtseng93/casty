@@ -165,6 +165,7 @@ CASTY_ZOOM=1.5 bun casty.js   # 自動ズームに加えて 1.5 倍に拡大
 | `copy` (`c`) / `paste` (`p`) | 選択テキストをコピー / 貼り付け |
 | `copyurl` (`yank`, `y`) | ページの URL をコピー |
 | `pasteurl` (`pu`) | クリップボードの内容をアドレスバーに貼り付け（編集または Enter で送信） |
+| `download` (`dl`, `save`) | ブラウザが受け取ったページをそのまま `~/Downloads` に保存 |
 | `find [テキスト]` (`/テキスト`) | ページ内検索。`find` だけで次の一致へ |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | ズームの表示・設定（1 が自動ズーム） |
 | `help` (`?`) | コマンド一覧 |
@@ -177,7 +178,7 @@ CASTY_ZOOM=1.5 bun casty.js   # 自動ズームに加えて 1.5 倍に拡大
 - バーを**ダブルクリック**：左 1/3 で次の履歴、中央で前の履歴、右 1/3 で Enter
 
 `zoom 1.5`・`zoom 150%`・`zoom +`・`zoom -` はすぐに反映されます。`CASTY_ZOOM` は起動時のズームを設定します。
-`~/.casty/keys.json` では次のアクションも割り当てられます：`command`、`reload`、`home`、`copy_url`、`paste_url`、`zoom_in`、`zoom_out`、`zoom_reset`。
+`~/.casty/keys.json` では次のアクションも割り当てられます：`command`、`reload`、`home`、`copy_url`、`paste_url`、`download`、`zoom_in`、`zoom_out`、`zoom_reset`。
 
 ### ブックマーク
 
