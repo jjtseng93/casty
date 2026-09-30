@@ -254,7 +254,7 @@ async function main() {
   setDisplaySize(term.cols, term.rows - 1);
 
   // Phase 2: CDP connection + page setup
-  const { client, cssWidth, cssHeight } = await setupPage(browser, { ...term, height: viewHeight, mediaPort: media?.port || 0 });
+  const { client, cssWidth, cssHeight } = await setupPage(browser, { ...term, height: viewHeight, mediaPort: media?.port || 0, mediaToken: media?.token || '' });
   const chromeProcess = browser.proc;
 
   // Log WebSocket errors to stderr (prevent unhandled crash)
@@ -341,13 +341,17 @@ async function main() {
     shuttingDown = true;
     console.error('casty: shutting down...');
     renderPaused = true;           // Stop rendering first
-    try {
-      await stopScreencast(client, screencastCleanup);  // Stop screencast (disables pending captures)
-      await client.send('Browser.close').catch(() => {});
-    } catch {}
+    // A stalled browser must not hold up quitting; it is killed below anyway.
+    await Promise.race([
+      (async () => {
+        await stopScreencast(client, screencastCleanup);  // Stop screencast (disables pending captures)
+        await client.send('Browser.close').catch(() => {});
+      })().catch(() => {}),
+      new Promise(resolve => setTimeout(resolve, 1000)),
+    ]);
     client.close();
     chromeProcess.kill();
-    media?.cleanup();
+    await media?.cleanup();
     disableMouse();
     showCursor();
     try { process.stdin.setRawMode(false); } catch {}
