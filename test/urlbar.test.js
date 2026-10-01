@@ -200,14 +200,15 @@ test('a long line scrolls with the cursor, and Home/End bring back either end', 
   let shown = view(bar, 20);
   assert.equal(shown.line.trimEnd().endsWith('END'), true);
   assert.equal(shown.cursorCol, 19);
-  // Home (every terminal's sequence) scrolls back to the prompt and the start.
+  // Home (every terminal's sequence) scrolls all the way back, so the
+  // prompt shows again in front of the start of the text.
   for (const home of ['\x1b[H', '\x1bOH', '\x1b[1~', '\x1b[7~']) {
     bar.cursor = [...url].length;
     view(bar, 20);
     bar.handleInput(home);
     shown = view(bar, 20);
-    assert.equal(shown.line, 'https://example.com/');
-    assert.equal(shown.cursorCol, 0);
+    assert.equal(shown.line, ' > https://example.c');
+    assert.equal(shown.cursorCol, 3);
   }
   for (const end of ['\x1b[F', '\x1bOF', '\x1b[4~', '\x1b[8~']) {
     bar.cursor = 0;
@@ -244,4 +245,20 @@ test('clicking a scrolled line maps the column to the visible character', () => 
   // The last visible text column is the end of the URL.
   bar.handleClick(cols, 5000);
   assert.equal(bar.cursor, [...url].length - 1);
+});
+
+test('moving left to the start of a scrolled line shows the prompt again', () => {
+  const bar = newBar();
+  bar.startEditing({ command: true });
+  bar.handleInput('x'.repeat(30));
+  view(bar, 20);
+  // Walking left, the line scrolls only as far as the cursor until the start;
+  // on reaching the start the whole "cmd> " is back.
+  for (let i = 0; i < 29; i++) bar.handleInput('\x1b[D');
+  assert.equal(view(bar, 20).line, 'xxxxxxxxxxxxxxxxxxxx');
+  bar.handleInput('\x1b[D');
+  assert.deepEqual(view(bar, 20), { line: 'cmd> xxxxxxxxxxxxxxx', cursorCol: 5 });
+  // Left again at the start keeps it that way.
+  bar.handleInput('\x1b[D');
+  assert.deepEqual(view(bar, 20), { line: 'cmd> xxxxxxxxxxxxxxx', cursorCol: 5 });
 });
