@@ -184,3 +184,64 @@ test('startEditing with text starts from it, unselected, for editing or Enter', 
   bar.handleInput('\r');
   assert.deepEqual(await result, { mode: 'url', url: 'https://example.com/pastedx' });
 });
+
+// The rendered edit line with a fixed width: what is visible, and where the cursor is.
+function view(bar, cols) {
+  const line = bar._editLine(cols).replace(/\x1b\[[0-9;]*m/g, '');
+  return { line, cursorCol: bar._editView(cols).cursorCol };
+}
+
+test('a long line scrolls with the cursor, and Home/End bring back either end', () => {
+  const bar = newBar();
+  const url = 'https://example.com/' + 'a'.repeat(40) + 'END';
+  bar.currentUrl = url;
+  bar.startEditing({ command: false });
+  // At the end: the tail is visible and the cursor is on the last column.
+  let shown = view(bar, 20);
+  assert.equal(shown.line.trimEnd().endsWith('END'), true);
+  assert.equal(shown.cursorCol, 19);
+  // Home (every terminal's sequence) scrolls back to the prompt and the start.
+  for (const home of ['\x1b[H', '\x1bOH', '\x1b[1~', '\x1b[7~']) {
+    bar.cursor = [...url].length;
+    view(bar, 20);
+    bar.handleInput(home);
+    shown = view(bar, 20);
+    assert.equal(shown.line, 'https://example.com/');
+    assert.equal(shown.cursorCol, 0);
+  }
+  for (const end of ['\x1b[F', '\x1bOF', '\x1b[4~', '\x1b[8~']) {
+    bar.cursor = 0;
+    view(bar, 20);
+    bar.handleInput(end);
+    assert.equal(view(bar, 20).line.trimEnd().endsWith('END'), true);
+  }
+});
+
+test('the line only scrolls as far as the cursor needs, and counts wide characters as two columns', () => {
+  const bar = newBar();
+  bar.startEditing({ command: true });
+  bar.handleInput('一二三四五六七八九十');
+  // "cmd> " (5) + 10 wide characters (20) = 25 columns; the cursor stays on screen.
+  let shown = view(bar, 16);
+  assert.equal(shown.cursorCol, 15);
+  // Scrolled by 10 columns: "三" (columns 9-10) is cut in half, so a blank
+  // column takes its place and the cursor sits right after "十".
+  assert.equal(shown.line, ' 四五六七八九十 ');
+  // Moving left inside the visible part does not scroll.
+  bar.handleInput('\x1b[D');
+  assert.equal(view(bar, 16).line, shown.line);
+  assert.equal(view(bar, 16).cursorCol, 13);
+});
+
+test('clicking a scrolled line maps the column to the visible character', () => {
+  const bar = newBar();
+  const url = 'https://example.com/' + 'x'.repeat(30) + 'TAIL';
+  bar.currentUrl = url;
+  bar.startEditing({ command: false });
+  const cols = process.stdout.columns || 80;
+  if (cols >= url.length + 4) return; // The line does not scroll on this wide a terminal.
+  view(bar, cols);
+  // The last visible text column is the end of the URL.
+  bar.handleClick(cols, 5000);
+  assert.equal(bar.cursor, [...url].length - 1);
+});

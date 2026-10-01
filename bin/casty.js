@@ -78,6 +78,7 @@ Address bar and command line:
   Up / Down        History (kept per mode in ~/.casty/history.json)
   Click > or cmd>  Switch between address and command, keeping the text
   Double-click     Left third: next entry; middle: previous; right: Enter
+  Home / End       Start / end of the text (long text scrolls with the cursor)
   Ctrl+U / Ctrl+K  Toggle text before / after the cursor
   Type a URL or search query, then Enter
   /b [query]       Search bookmarks

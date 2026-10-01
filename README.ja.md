@@ -177,6 +177,7 @@ CASTY_ZOOM=1.5 bun casty.js   # 自動ズームに加えて 1.5 倍に拡大
 - **↑ / ↓**：そのモードの履歴をたどる（`~/.casty/history.json` に保存）
 - プロンプト（` > ` または `cmd>`）を**クリック**：入力中のテキストを保ったまま 2 つのモードを切り替え。テキストのクリックはカーソル移動
 - バーを**ダブルクリック**：左 1/3 で次の履歴、中央で前の履歴、右 1/3 で Enter
+- バーより長いテキストはカーソルに合わせて**横スクロール**し、**Home / End** で先頭／末尾へ移動
 
 `zoom 1.5`・`zoom 150%`・`zoom +`・`zoom -` はすぐに反映されます。`CASTY_ZOOM` は起動時のズームを設定します。
 `~/.casty/keys.json` では次のアクションも割り当てられます：`command`、`reload`、`home`、`copy_url`、`paste_url`、`download`、`eruda`、`zoom_in`、`zoom_out`、`zoom_reset`。

@@ -177,6 +177,7 @@ CASTY_ZOOM=1.5 bun casty.js   # 在自動縮放之上再放大 1.5 倍
 - **上 / 下鍵**：翻這個模式的歷史，存在 `~/.casty/history.json`
 - **點擊**提示字元（` > ` 或 `cmd>`）：在兩種模式間切換，已輸入的文字保留；點文字則移動游標
 - **雙擊**網址列：左 1/3 是下一筆歷史，中間是上一筆，右 1/3 等同 Enter
+- 文字比網址列長時會跟著游標**水平捲動**；**Home / End** 跳到最前／最後
 
 `zoom 1.5`、`zoom 150%`、`zoom +`、`zoom -` 會立即生效；`CASTY_ZOOM` 設定啟動時的縮放。
 `~/.casty/keys.json` 還可以綁定這些動作：`command`、`reload`、`home`、`copy_url`、`paste_url`、`download`、`eruda`、`zoom_in`、`zoom_out`、`zoom_reset`。

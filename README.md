@@ -179,6 +179,7 @@ In both the address bar and the command line:
 - **Up / Down** walk the history of that mode, kept in `~/.casty/history.json`
 - **Clicking** the prompt (` > ` or `cmd>`) switches between the two modes, keeping the text; clicking the text moves the cursor
 - **Double-clicking** the bar: left third = next history entry, middle = previous, right = Enter
+- Text longer than the bar **scrolls** with the cursor; **Home / End** jump to either end
 
 `zoom 1.5`, `zoom 150%`, `zoom +` and `zoom -` apply at once; `CASTY_ZOOM` sets the zoom at start-up.
 Other actions for `~/.casty/keys.json`: `command`, `reload`, `home`, `copy_url`, `paste_url`, `download`, `eruda`, `zoom_in`, `zoom_out`, `zoom_reset`.
