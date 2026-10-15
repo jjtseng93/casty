@@ -2,9 +2,11 @@ import {test,expect} from 'bun:test';
 
 test('Ctrl+E pixelmouse on/off switches real input handling and keeps URL bar coordinates',async()=>{
  const moduleURL=new URL('../lib/input.js',import.meta.url).href;
+ const kittyURL=new URL('../lib/kitty.js',import.meta.url).href;
  const script=`
  import assert from 'node:assert/strict';
  import {EventEmitter} from 'node:events';
+ import {detectTransport} from ${JSON.stringify(kittyURL)};
  import {startInputHandling,enableMouse,disableMouse} from ${JSON.stringify(moduleURL)};
  const output=[],events=[];
  process.stdout.write=s=>{output.push(String(s));return true;};
@@ -23,6 +25,10 @@ test('Ctrl+E pixelmouse on/off switches real input handling and keeps URL bar co
  await feed('\\x1b[?1016;2$y');await click(26,61);assert.equal(press().x,13);assert.equal(press().y,20.5);
  bar.updateCellSize(10,20,2,{width:5,height:8,known:true});await click(400,240);assert.equal(press().x,400);assert.equal(press().y,290);
  bar.updateCellSize(10,20,2,{width:10,height:20,known:true});
+ await command('kitty file');assert.equal(detectTransport(),'file');
+ await command('kitty');assert.ok(output.some(s=>s.includes('Kitty: file')));
+ await command('kitty inline');assert.equal(detectTransport(),'inline');
+ await command('kitty invalid');assert.equal(detectTransport(),'inline');
  const count=events.filter(e=>e.method==='Input.dispatchMouseEvent').length;
  await feed('\\x1b[<0;25;10M');assert.equal(bar.editing,true);assert.equal(events.filter(e=>e.method==='Input.dispatchMouseEvent').length,count);
  disableMouse();process.exit(0);

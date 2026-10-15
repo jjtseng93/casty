@@ -219,8 +219,8 @@ Create `~/.casty/bookmarks.json`:
 |-----|-------------|---------|
 | `homeUrl` | Start page | `https://github.com/jjtseng93/casty` |
 | `searchUrl` | Search engine URL | `https://www.google.com/search?q=` |
-| `transport` | Image transfer: `auto`, `file`, `inline` | `auto` (bcon/kitty→file, others→inline) |
-| `format` | Capture format: `auto`, `png`, `jpeg` | `auto` (file→jpeg adaptive, inline→png) |
+| `transport` | Image transfer: `auto`, `file`, `inline` | `auto` (file-access query; inline on error/timeout) |
+| `format` | Capture format: `auto`, `png`, `jpeg` | `auto` (file → adaptive JPEG, inline → PNG) |
 | `mouseMode` | `1002` (button-event) or `1003` (any-event) | Auto (Ghostty→1003, others→1002) |
 | `media` | Enable camera/mic for WebRTC (experimental, requires `ffmpeg`) | `false` |
 
@@ -329,3 +329,5 @@ real DSF keeps its launch value until casty restarts.
 ## License
 
 MIT
+
+Press `Ctrl-E`: `kitty` shows the current transport; `kitty inline` or `kitty file` switches it for this session without editing config. Auto transport starts inline, queries a temporary image file, and selects file only on a matching OK reply (700 ms timeout). Manual file mode bypasses the probe and requires shared paths. `format: auto` selects adaptive JPEG after a successful file probe, otherwise PNG. Manual transport switches preserve the capture format; inline JPEG requires a decoder that supports it.

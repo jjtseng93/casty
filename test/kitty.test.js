@@ -25,6 +25,7 @@ async function withKitty(env, fn) {
   if (env.TERM_PROGRAM === undefined) delete process.env.TERM_PROGRAM;
   else process.env.TERM_PROGRAM = env.TERM_PROGRAM;
 
+  kitty.setTransport(env.TERM_PROGRAM === "kitty" ? "file" : "inline");
   kitty.resetFrameCache();
 
   try {

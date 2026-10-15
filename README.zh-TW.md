@@ -217,8 +217,8 @@ Casty 啟動時會查詢模式 1016；收到支援回覆才啟用像素座標，
 |----|------|--------|
 | `homeUrl` | 首頁 | `https://github.com/jjtseng93/casty` |
 | `searchUrl` | 搜尋引擎網址 | `https://www.google.com/search?q=` |
-| `transport` | 影像傳輸方式：`auto`、`file`、`inline` | `auto`（bcon/kitty→file，其他→inline） |
-| `format` | 擷取格式：`auto`、`png`、`jpeg` | `auto`（file→jpeg 自適應，inline→png） |
+| `transport` | 影像傳輸方式：`auto`、`file`、`inline` | `auto`（查詢檔案存取；失敗或逾時使用 inline） |
+| `format` | 擷取格式：`auto`、`png`、`jpeg` | `auto`（file → 自適應 JPEG，inline → PNG） |
 | `mouseMode` | `1002`（按鍵事件）或 `1003`（所有事件） | 自動（Ghostty→1003，其他→1002） |
 | `media` | 為 WebRTC 啟用攝影機/麥克風（實驗性，需要 `ffmpeg`） | `false` |
 
@@ -324,3 +324,5 @@ casty 透過 `Emulation.setDeviceMetricsOverride` 模擬 `deviceScaleFactor = zo
 ## 授權
 
 MIT
+
+按 `Ctrl-E`：`kitty` 顯示目前傳輸方式；`kitty inline` 或 `kitty file` 切換本次執行的模式，不修改設定檔。自動模式先用 inline，查詢暫存圖片檔，只有收到對應的 OK 才使用 file；700 毫秒逾時則保留 inline。手動 file 不做探測，必須能共用路徑。`format: auto` 在檔案探測成功後選用自適應 JPEG，否則用 PNG。手動切換傳輸方式不更改擷取格式；inline JPEG 需要接收端的解碼器支援。

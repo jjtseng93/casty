@@ -217,8 +217,8 @@ CASTY_ZOOM=1.5 bun casty.js   # 自動ズームに加えて 1.5 倍に拡大
 |------|------|-----------|
 | `homeUrl` | スタートページ | `https://github.com/jjtseng93/casty` |
 | `searchUrl` | 検索エンジン URL | `https://www.google.com/search?q=` |
-| `transport` | 画像転送方式: `auto`, `file`, `inline` | `auto` (bcon/kitty→file、他→inline) |
-| `format` | キャプチャ形式: `auto`, `png`, `jpeg` | `auto` (file→jpeg adaptive、inline→png) |
+| `transport` | 画像転送方式: `auto`, `file`, `inline` | `auto` (ファイル読み取りを照会、失敗・タイムアウト時は inline) |
+| `format` | キャプチャ形式: `auto`, `png`, `jpeg` | `auto` (file → adaptive JPEG, inline → PNG) |
 | `mouseMode` | `1002` (ボタンイベント) or `1003` (全イベント) | 自動 (Ghostty→1003、他→1002) |
 | `media` | WebRTC 用カメラ/マイク有効化（実験的、`ffmpeg` 必要） | `false` |
 
@@ -327,3 +327,5 @@ CSS ピクセルのまま扱われます。フレーム解像度は変わりま�
 ## ライセンス
 
 MIT
+
+`Ctrl-E` の `kitty` で現在の転送方式を表示し、`kitty inline` / `kitty file` で今回のセッションのみ切り替えます。auto は inline で開始し、一時画像ファイルへの照会に対応する OK を受け取った場合のみ file に切り替えます。700 ms でタイムアウトします。手動 file は照会を省略するため共有パスが必要です。`format: auto` はファイル照会成功時に adaptive JPEG、それ以外は PNG を選択します。手動の転送切り替えでは画像形式を変更しません。inline JPEG は対応するデコーダーが必要です。

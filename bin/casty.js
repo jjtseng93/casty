@@ -142,7 +142,7 @@ function printControlsHelp() {
 await ensureChrome();
 
 import { startBrowser, setupPage, startScreencast, stopScreencast } from '../lib/browser.js';
-import { sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
+import { sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
 import { enableMouse, disableMouse, startInputHandling } from '../lib/input.js';
 import { loadKeyBindings } from '../lib/keys.js';
 import { loadConfig } from '../lib/config.js';
@@ -271,7 +271,22 @@ async function main() {
   // the CSS pixels that CDP Input and page overlays both use.
   const cssCellW = term.cellWidth;
   const cssCellH = term.cellHeight;
-  // format: auto → PNG for inline, JPEG (adaptive) for file transfer
+  // Install reply handling before probing, then choose the initial capture
+  // format once. Advanced manual transport changes do not change the codec.
+  let forceCapture = () => {}, requestPreview = () => {}, screencastCleanup;
+  let urlBar = null;
+  let captureReady = false;
+  const zoomControl = {
+    get: () => zoomFactor,
+    // Re-run the resize path: it recomputes the zoom and the viewport
+    set: (factor) => { if (!captureReady) return; zoomFactor = factor; return handleResize(); },
+  };
+  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown });
+  enableMouse();
+  await initializeTransport(() => { forceCapture(); });
+  urlBar.render();
+
+  // Auto: JPEG (adaptive) for file transfer, PNG for inline.
   // jpeg mode: fast JPEG during activity, PNG refinement when static
   const fmt = config.format || 'auto';
   const transport = detectTransport();
@@ -283,7 +298,6 @@ async function main() {
 
   // Frame callback for screencast / captureScreenshot
   // sendFrame includes cursor positioning (single write)
-  let urlBar = null;
   function onFrame(data) {
     if (renderPaused) return;
     sendFrame(data);
@@ -291,21 +305,12 @@ async function main() {
   }
 
   // Phase 3: Start screencast
-  let { forceCapture, requestPreview, cleanup: screencastCleanup } = await startScreencast(client, {
+  ({ forceCapture, requestPreview, cleanup: screencastCleanup } = await startScreencast(client, {
     width: cssWidth,
     height: cssHeight,
     format: screenshotFormat,
     onFrame,
-  });
-
-  const zoomControl = {
-    get: () => zoomFactor,
-    // Re-run the resize path: it recomputes the zoom and the viewport
-    set: (factor) => { zoomFactor = factor; return handleResize(); },
-  };
-  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, forceCapture, zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown });
-  enableMouse();
-  urlBar.render();
+  }));
 
   // Force capture on page load events (debounced — multiple events fire close together)
   let delayedTimers = [];
@@ -384,6 +389,7 @@ async function main() {
   // Direct screenshot — bypasses screencast's capturing flag
   const screenshotOpts = { format: screenshotFormat, optimizeForSpeed: true, captureBeyondViewport: false };
   if (screenshotFormat === 'jpeg') screenshotOpts.quality = 85;
+  captureReady = true;
   async function directCapture() {
     try {
       const { data } = await client.send('Page.captureScreenshot', screenshotOpts);
