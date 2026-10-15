@@ -20,3 +20,25 @@ test('ambiguous control bytes preserve Alt+special key meanings', () => {
   }
   expect(parseInput('\x1b[1;7D')).toMatchObject({key:'ArrowLeft',modifiers:3});
 });
+
+test('Ctrl+Alt arrows and Alt+Tab are distinct from plain and Alt-only keys', () => {
+  for(const [suffix,key] of [['A','ArrowUp'],['B','ArrowDown'],['C','ArrowRight'],['D','ArrowLeft']]){
+    expect(parseInput('\x1b[1;7'+suffix)).toMatchObject({key,modifiers:3});
+    expect(parseInput('\x1b[1;3'+suffix)).toMatchObject({key,modifiers:1});
+    expect(parseInput('\x1b['+suffix)).toMatchObject({key,modifiers:0});
+  }
+  expect(parseInput('\x1b\t')).toMatchObject({key:'Tab',code:'Tab',modifiers:1});
+  expect(parseInput('\t')).toMatchObject({key:'Tab',code:'Tab',modifiers:0});
+});
+
+test('Tab modifier reports preserve all eight Ctrl/Alt/Shift combinations', () => {
+  const masks=[0,8,1,9,2,10,3,11];
+  for(let i=0;i<masks.length;i++){
+    for(const sequence of [`\x1b[9;${i+1}u`,`\x1b[27;${i+1};9~`])
+      expect(parseInput(sequence)).toMatchObject({key:'Tab',code:'Tab',modifiers:masks[i]});
+  }
+  expect(parseInput('\x1b[Z')).toMatchObject({key:'Tab',modifiers:8});
+  expect(parseInput('\x1b\x1b[Z')).toMatchObject({key:'Tab',modifiers:9});
+  expect(parseInput('\x1b[1;6Z')).toMatchObject({key:'Tab',modifiers:10});
+  expect(parseInput('\x1b[9u')).toMatchObject({key:'Tab',modifiers:0});
+});
