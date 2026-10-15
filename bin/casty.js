@@ -226,7 +226,7 @@ async function getTermInfo({ keepAlive = false } = {}) {
     const width = cellWidth * cols;
     const height = cellHeight * rows;
     const zoom = calcZoom(cellWidth);
-    return { cols, rows, width, height, cellWidth, cellHeight, zoom };
+    return { cols, rows, width, height, cellWidth, cellHeight, zoom, mouseCellWidth: pixelSize.width / cols, mouseCellHeight: pixelSize.height / rows, pixelGeometryKnown: true };
   }
 
   const cellWidth = parseInt(process.env.CASTY_CELL_WIDTH) || 10;
@@ -236,7 +236,7 @@ async function getTermInfo({ keepAlive = false } = {}) {
     cols, rows,
     width: cols * cellWidth,
     height: rows * cellHeight,
-    cellWidth, cellHeight, zoom,
+    cellWidth, cellHeight, zoom, pixelGeometryKnown: false,
   };
 }
 
@@ -266,7 +266,6 @@ async function main() {
 
   hideCursor();
   clearScreen();
-  enableMouse();
 
   // Terminal cells are measured in device pixels; input.js converts them to
   // the CSS pixels that CDP Input and page overlays both use.
@@ -304,7 +303,8 @@ async function main() {
     // Re-run the resize path: it recomputes the zoom and the viewport
     set: (factor) => { zoomFactor = factor; return handleResize(); },
   };
-  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, forceCapture, zoomControl);
+  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, forceCapture, zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown });
+  enableMouse();
   urlBar.render();
 
   // Force capture on page load events (debounced — multiple events fire close together)
@@ -405,7 +405,7 @@ async function main() {
       setDisplaySize(t.cols, t.rows - 1);
       console.error(`casty: resize ${cw}x${ch} (dev:${t.width}x${vh}) zoom:${t.zoom.toFixed(2)}`);
 
-      urlBar.updateCellSize(t.cellWidth, t.cellHeight, t.zoom);
+      urlBar.updateCellSize(t.cellWidth, t.cellHeight, t.zoom, { width: t.mouseCellWidth, height: t.mouseCellHeight, known: t.pixelGeometryKnown });
       clearScreen();
       resetFrameCache();
       disableDedup(3000); // Force re-send for 3s (bcon may not display first frame)

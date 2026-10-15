@@ -171,8 +171,14 @@ Customizable via `~/.casty/keys.json`.
 | `find [text]` (`/text`) | Find text in the page; `find` alone goes to the next match |
 | `eruda` (`devtools`) | Show or hide the [eruda](https://github.com/liriliri/eruda) console in the page (loaded from a CDN, needs network) |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | Show or set the zoom; 1 is the automatic zoom |
+| `pixelmouse [on\|off]` | Show mouse mode; query and enable pixels, or return to cells |
 | `help` (`?`) | List commands |
 | `quit` (`q`) | Quit |
+
+Casty queries mode 1016 at startup. A supported reply enables pixel coordinates; an unsupported reply or a 500 ms timeout keeps SGR 1006 cell coordinates (including Konsole 25.04.2). In Ctrl+E, `pixelmouse on` queries again, `pixelmouse off` switches to 1006, and `pixelmouse` shows the current mode. Changes last for this session. Set `"mousePixels": false` in config.json to start in cell mode without querying.
+
+Pixel mode also requires a successful terminal pixel-size query (CSI 14t). Casty maps reported terminal pixels to the image’s cell rectangle, including fractional cell sizes. If dimensions are unknown, it stays on 1006. After updating jsgotty, restart its server, reload the browser page to load the updated frontend, and restart Casty.
+
 
 In both the address bar and the command line:
 

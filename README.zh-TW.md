@@ -169,8 +169,14 @@ CASTY_ZOOM=1.5 bun casty.js   # 在自動縮放之上再放大 1.5 倍
 | `find [文字]` (`/文字`) | 在頁面中尋找；只打 `find` 跳到下一個 |
 | `eruda` (`devtools`) | 在頁面裡顯示或隱藏 [eruda](https://github.com/liriliri/eruda) 主控台（從 CDN 載入，需要網路） |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | 顯示或設定縮放，1 是自動縮放 |
+| `pixelmouse [on\|off]` | 顯示滑鼠模式；查詢並啟用像素座標，或退回字元格座標 |
 | `help` (`?`) | 列出指令 |
 | `quit` (`q`) | 結束 |
+
+Casty 啟動時會查詢模式 1016；收到支援回覆才啟用像素座標，不支援或 500 毫秒內無回覆就使用 SGR 1006 字元格座標（包含 Konsole 25.04.2）。在 Ctrl+E 輸入 `pixelmouse on` 可重新查詢，`pixelmouse off` 立即退回 1006，單獨輸入 `pixelmouse` 顯示目前模式。切換只影響本次執行；config.json 設定 `"mousePixels": false` 可預設使用字元格模式並略過查詢。
+
+像素模式也需要成功取得終端像素尺寸（CSI 14t）。Casty 會依實際字元格尺寸（包含小數）將回報座標換算到影像範圍；尺寸不明時維持 1006。更新 jsgotty 後，請重啟伺服器、重新載入瀏覽器網頁以載入新版前端，再重啟 Casty。
+
 
 網址列和指令列都可以：
 
