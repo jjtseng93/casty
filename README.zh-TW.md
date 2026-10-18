@@ -222,6 +222,14 @@ Casty 啟動時會查詢模式 1016；收到支援回覆才啟用像素座標，
 | `mouseMode` | `1002`（按鍵事件）或 `1003`（所有事件） | 自動（Ghostty→1003，其他→1002） |
 | `media` | 為 WebRTC 啟用攝影機/麥克風（實驗性，需要 `ffmpeg`） | `false` |
 
+### 截圖間隔
+
+設定 `CASTY_CAPTURE_MIN_INTERVAL=16` 可將高解析度截圖開始之間的最短間隔改成 16 ms，預設為 50 ms。接受 0–60000 的整數毫秒；0 表示取消時間節流，但仍一次只處理一張截圖。無效值會提示並回退 50 ms。串流啟動時讀取設定，修改後請重啟 Casty。實際 FPS 仍受繪製、編碼與終端輸出速度限制；強制截圖仍可繞過節流。
+
+```sh
+CASTY_CAPTURE_MIN_INTERVAL=16 bun index.js
+```
+
 ## 比較
 
 | | casty | Browsh | w3m/lynx |

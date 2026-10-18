@@ -224,6 +224,14 @@ Create `~/.casty/bookmarks.json`:
 | `mouseMode` | `1002` (button-event) or `1003` (any-event) | Auto (Ghostty→1003, others→1002) |
 | `media` | Enable camera/mic for WebRTC (experimental, requires `ffmpeg`) | `false` |
 
+### Capture interval
+
+Set `CASTY_CAPTURE_MIN_INTERVAL=16` to use a 16 ms minimum interval between high-resolution capture starts (default: 50 ms). Accepts integer milliseconds from 0 to 60000; 0 disables the time throttle while retaining one capture at a time. Invalid values warn and fall back to 50 ms. Read when a screencast starts; restart Casty to change it. Actual FPS also depends on rendering, encoding and terminal throughput. Forced captures still bypass this throttle.
+
+```sh
+CASTY_CAPTURE_MIN_INTERVAL=16 bun index.js
+```
+
 ## Comparison
 
 | | casty | Browsh | w3m/lynx |
