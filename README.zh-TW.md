@@ -127,6 +127,15 @@ CASTY_ZOOM=1.5 bun casty.js   # 在自動縮放之上再放大 1.5 倍
 瀏覽器依序使用 `CASTY_BROWSER`、`BUN_CHROME_PATH`，都沒有設定時才自動尋找。
 副檔名是 `.js`、`.ts` 或類似的瀏覽器會用 Bun 執行（找不到 Bun 時用執行 casty 的 runtime），其他則直接執行。
 
+### 頁面按鍵全部傳入
+
+使用 `casty --no-shortcuts [網址]`，頁面上的 Ctrl+Q、Ctrl+E、Ctrl+V 等所有
+按鍵都傳給瀏覽器／compositor。左側原本 loading 的三格區域固定顯示 **@**，
+平時青藍色、載入中橘色。點擊該區會開啟**空白 `cmd>`**，輸入 `q`（或
+`quit`／`exit`）再按 Enter 即可退出。點網址維持原本編輯行為；網址列與
+命令列保留編輯快捷鍵，包括 Alt+C、Ctrl+V，以及 Ctrl+C 複製，以及 Esc 取消編輯。
+未加此選項時，維持原本快捷鍵與 loading 動畫。
+
 ### 快捷鍵
 
 | 按鍵 | 動作 |
@@ -138,9 +147,24 @@ CASTY_ZOOM=1.5 bun casty.js   # 在自動縮放之上再放大 1.5 倍
 | Ctrl+U / Ctrl+K | 上一頁 / 下一頁（在網址列中則是剪下／還原游標前後的文字） |
 | Alt+C | 複製選取的文字 |
 | Ctrl+V | 貼上 |
+| Ctrl+C | 傳給頁面；在網址列或指令列複製 |
 | Ctrl+Q | 離開 |
 
 可透過 `~/.casty/keys.json` 自訂。
+
+### Kitty 鍵盤
+
+Casty 會自動偵測 [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/)，
+要求 flags **1、2、8**，傳遞可區分的按鍵、按下／重複／放開及所有按鍵事件。
+新版 jsgotty、bunterm 與其他相容終端可直接使用；Ctrl、Alt、Shift、Super
+各自保留，Super 以 CDP Meta 傳入（`keys.json` 使用 `meta`）。不支援的終端
+維持傳統輸入；退出 casty 時會彈出自己的鍵盤模式，恢復終端先前的設定。
+
+編輯時按 **Tab** 可切換網址與 `cmd>` 模式，保留文字與游標位置。
+網址列和指令列可用滑鼠左鍵拖曳、**Shift+方向鍵** 選字，Shift+Home／End
+可選到行首／行尾。**Alt+C / Ctrl+C** 優先複製選取部分，沒有選取時複製整段文字。
+**Ctrl+V** 透過 OSC 52 貼上：有選取就取代選取部分，否則從游標插入。放開事件不會重複觸發本機操作或漏送到底下頁面。
+若組合鍵先被作業系統、瀏覽器或外層終端攔截，casty 仍無法收到。
 
 ### 提示模式
 

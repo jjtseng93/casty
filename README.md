@@ -129,6 +129,16 @@ found automatically. A browser ending in `.js`, `.ts` or a similar extension
 is run with Bun (or, without Bun, with the runtime running casty); anything
 else is executed directly.
 
+### Forward all page keys
+
+Use `casty --no-shortcuts [url]` to forward every page key, including Ctrl+Q,
+Ctrl+E and Ctrl+V, to the browser/compositor. The left loading slot displays a
+permanent **@** (cyan normally, amber while loading). Click that three-cell
+area to open an **empty `cmd>`**, then type `q` (or `quit` / `exit`) and Enter
+to quit. Clicking the URL keeps its normal editing behavior. Address/command
+editing retains its shortcuts, including Alt+C, Ctrl+V and Ctrl+C to copy and Esc to cancel.
+Without this flag, the original shortcuts and spinner remain unchanged.
+
 ### Keybindings
 
 | Key | Action |
@@ -140,9 +150,28 @@ else is executed directly.
 | Ctrl+U / Ctrl+K | Back / Forward (in the address bar, toggle the text before / after the cursor) |
 | Alt+C | Copy selected text |
 | Ctrl+V | Paste |
+| Ctrl+C | Send to the page; copy in the address bar or command line |
 | Ctrl+Q | Quit |
 
 Customizable via `~/.casty/keys.json`.
+
+### Kitty keyboard
+
+Casty automatically detects the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/)
+and requests flags **1, 2, 8** (unambiguous keys, press/repeat/release, all keys).
+Updated jsgotty and bunterm support this, as do compatible terminals. Ctrl, Alt,
+Shift and Super remain distinct; Super is forwarded as CDP Meta (`meta` in
+`keys.json`). Terminals without support keep the legacy input path. On exit,
+casty pops its keyboard mode to restore the terminal's previous state.
+
+The address bar and command line work in both modes: drag with the left mouse
+button or use **Shift+arrows** to select text (Shift+Home/End selects to an end).
+**Tab** switches between URL and `cmd>` mode while editing, keeping the text and cursor.
+**Alt+C / Ctrl+C** copies the selection, or the entire text if nothing is selected.
+**Ctrl+V** pastes through OSC 52, replacing the selection if present, otherwise
+inserting at the cursor. Releases do not repeat local
+actions or leak into the page. Terminal/browser/OS shortcuts intercepted before
+reaching casty still cannot be forwarded.
 
 ### Hint Mode
 
