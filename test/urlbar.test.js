@@ -87,6 +87,22 @@ test('Esc cancels either mode', async () => {
   assert.equal(await address, null);
 });
 
+test('Tab switches editing modes and preserves text and cursor', async () => {
+  const bar = newBar();
+  assert.equal(bar.handleInput('\t'), false);
+  bar.currentUrl = 'example.com';
+  const result = bar.startEditing();
+  bar.moveCursor(3);
+  for (const mode of ['cmd', 'url', 'cmd']) {
+    assert.equal(bar.handleInput('\t'), true);
+    assert.equal(bar.mode, mode);
+    assert.equal(bar.text, 'example.com');
+    assert.equal(bar.cursor, 3);
+  }
+  bar.handleInput('\r');
+  assert.deepEqual(await result, { mode: 'cmd', line: 'example.com' });
+});
+
 test('clicking the prompt switches modes and keeps the text', async () => {
   const bar = newBar();
   bar.currentUrl = 'example.com';
