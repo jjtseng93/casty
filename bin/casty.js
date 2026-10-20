@@ -25,10 +25,12 @@ const readmeOptions = {
   '--readme-wui-ja': ['--wui', 'README.ja.md'],
 };
 // casty's own options; any other leading option goes to the browser.
-const ownOptions = new Set(['--help', '-h', '--version', '-v', '-V', ...Object.keys(readmeOptions)]);
+const ownOptions = new Set(['--no-shortcuts', '--help', '-h', '--version', '-v', '-V', ...Object.keys(readmeOptions)]);
 
 // Arguments after "--" are passed to the browser.
-const { args: cliArgs, browserArgs } = splitBrowserArgs(process.argv.slice(2), ownOptions);
+const { args: frontendArgs, browserArgs } = splitBrowserArgs(process.argv.slice(2), ownOptions);
+const noShortcuts = frontendArgs.includes('--no-shortcuts');
+const cliArgs = frontendArgs.filter(arg => arg !== '--no-shortcuts');
 if (Object.hasOwn(readmeOptions, cliArgs[0])) {
   const [mode, readme] = readmeOptions[cliArgs[0]];
   const child = spawnSync('bun',
@@ -59,6 +61,7 @@ Options:
                    Open the English, Chinese, or Japanese README in a terminal UI
   --readme-wui[-zh|-ja]
                    Open the English, Chinese, or Japanese README in a web UI
+  --no-shortcuts   Forward all page keys; click @ to open cmd> (q quits)
   -- <flags>       Pass the remaining arguments to the browser
                    (e.g. casty example.com -- --lang=ja)
 
@@ -72,12 +75,17 @@ Key bindings:
   Ctrl+V           Paste from clipboard
   Alt+Left/Right   Back / Forward
   Ctrl+U / Ctrl+K  Back / Forward
+  Ctrl+C           Send to page / copy while editing
   Ctrl+Q           Quit
 
 Address bar and command line:
   Up / Down        History (kept per mode in ~/.casty/history.json)
-  Click > or cmd>  Switch between address and command, keeping the text
+  Tab / click prompt
+                   Switch between address and command, keeping the text
   Double-click     Left third: next entry; middle: previous; right: Enter
+  Drag / Shift+arrows
+                   Select text; Alt+C / Ctrl+C copies selection (else all)
+  Ctrl+V           Replace selection, or insert at the cursor
   Home / End       Start / end of the text (long text scrolls with the cursor)
   Ctrl+U / Ctrl+K  Toggle text before / after the cursor
   Type a URL or search query, then Enter
@@ -108,6 +116,7 @@ const CONTROLS_HELP = `casty controls / casty 操作 / casty 操作方法
   Ctrl+V            Paste
   Alt+Left / Right  Back / Forward
   Ctrl+U / Ctrl+K   Back / Forward
+  Ctrl+C             Send to page / copy while editing
   Ctrl+Q             Quit
   Address bar: Ctrl+U / Ctrl+K toggles text before / after the cursor.
 
@@ -119,6 +128,7 @@ const CONTROLS_HELP = `casty controls / casty 操作 / casty 操作方法
   Ctrl+V            貼上
   Alt+左 / 右        上一頁 / 下一頁
   Ctrl+U / Ctrl+K   上一頁 / 下一頁
+  Ctrl+C             傳給頁面／編輯時複製
   Ctrl+Q             離開
   地址欄：Ctrl+U / Ctrl+K 可切下或恢復游標前方 / 後方的文字。
 
@@ -130,6 +140,7 @@ const CONTROLS_HELP = `casty controls / casty 操作 / casty 操作方法
   Ctrl+V            貼り付け
   Alt+左 / 右        戻る / 進む
   Ctrl+U / Ctrl+K   戻る / 進む
+  Ctrl+C             ページへ送信／編集中はコピー
   Ctrl+Q             終了
   アドレスバー：Ctrl+U / Ctrl+K でカーソル前後の文字列を切り取り／復元します。
 `;
@@ -138,12 +149,18 @@ function printControlsHelp() {
   console.log(CONTROLS_HELP);
 }
 
+// Explicit exit must wait for queued output, especially over a PTY or pipe.
+async function flushOutput() {
+  await Promise.all([process.stdout, process.stderr].map(stream =>
+    new Promise(resolve => stream.write('', resolve))));
+}
+
 // Ensure a browser is installed (downloads Chrome Headless Shell on first run).
 await ensureChrome();
 
 import { startBrowser, setupPage, startScreencast, stopScreencast } from '../lib/browser.js';
 import { sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
-import { enableMouse, disableMouse, startInputHandling } from '../lib/input.js';
+import { enableMouse, disableMouse, startInputHandling, stopInputHandling } from '../lib/input.js';
 import { loadKeyBindings } from '../lib/keys.js';
 import { loadConfig } from '../lib/config.js';
 import { startMedia } from '../lib/media.js';
@@ -281,7 +298,11 @@ async function main() {
     // Re-run the resize path: it recomputes the zoom and the viewport
     set: (factor) => { if (!captureReady) return; zoomFactor = factor; return handleResize(); },
   };
-  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown });
+  let shuttingDown = false;
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+  process.on('SIGHUP', shutdown);
+  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown }, { noShortcuts });
   enableMouse();
   await initializeTransport(() => { forceCapture(); });
   urlBar.render();
@@ -341,11 +362,11 @@ async function main() {
   requestPreview();
   client.send('Page.navigate', { url }).catch(e => console.error('casty: navigate error:', e.message));
 
-  let shuttingDown = false;
   async function shutdown() {
     if (shuttingDown) return;
     shuttingDown = true;
     console.error('casty: shutting down...');
+    stopInputHandling();
     renderPaused = true;           // Stop rendering first
     // A stalled browser must not hold up quitting; it is killed below anyway.
     await Promise.race([
@@ -366,12 +387,9 @@ async function main() {
     printControlsHelp();
     // Last line on screen, so it is clear which casty ran (and whether to update).
     console.log(`casty ${pkg.version}\n`);
+    await flushOutput();
     process.exit(0);
   }
-
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
-  process.on('SIGHUP', shutdown);
 
   // SIGWINCH: Follow resize + font size changes
   // Debounced (150ms) + guarded with pending flag to catch late resizes
@@ -465,6 +483,7 @@ async function main() {
 try {
   await main();
 } catch (err) {
+  stopInputHandling();
   // Restore stdin from raw mode (prevent CSI 14t response leak)
   try { process.stdin.setRawMode(false); process.stdin.pause(); } catch {}
   console.error('casty: error:', err.message);
@@ -472,5 +491,6 @@ try {
   showCursor();
   cleanupTmp();
   printControlsHelp();
+  await flushOutput();
   process.exit(1);
 }
