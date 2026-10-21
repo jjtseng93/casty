@@ -19,6 +19,17 @@ test('Kitty input reaches CDP, local commands stay local, releases cannot quit, 
  events.length=0;
  await feed('\x1b[?0u');await feed('\x1b[?11u');
  assert.ok(output.includes('\x1b[>11u\x1b[?u'));
+ // IMEs may still send legacy bytes after Kitty negotiation. Each such key
+ // needs its own release; otherwise CDP suppresses subsequent Space presses.
+ for (const legacy of [32,13,127].map(n=>String.fromCharCode(n))) {
+  events.length=0;
+  for(let i=0;i<3;i++)await feed(legacy);
+  const sent=events.filter(e=>e.method==='Input.dispatchKeyEvent').map(e=>e.params);
+  assert.equal(sent.filter(e=>e.type==='rawKeyDown').length,3);
+  assert.equal(sent.filter(e=>e.type==='keyUp').length,3);
+ }
+ events.length=0;
+
  await feed('\x1b[57444;9u\x1b[119;9u\x1b[119;9:2u\x1b[119;9:3u\x1b[57444;1:3u');
  const keys=()=>events.filter(e=>e.method==='Input.dispatchKeyEvent').map(e=>e.params);
  assert.deepEqual(keys().map(k=>[k.key,k.type]),[['Meta','rawKeyDown'],['w','rawKeyDown'],['w','rawKeyDown'],['w','keyUp'],['Meta','keyUp']]);
