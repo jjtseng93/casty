@@ -158,8 +158,9 @@ async function flushOutput() {
 // Ensure a browser is installed (downloads Chrome Headless Shell on first run).
 await ensureChrome();
 
+import {createCapturePolicy,discardRawFrame,isRaw} from '../lib/capture-format.js';
 import { startBrowser, setupPage, startScreencast, stopScreencast } from '../lib/browser.js';
-import { sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
+import { queryRawPreference, sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
 import { enableMouse, disableMouse, startInputHandling, stopInputHandling } from '../lib/input.js';
 import { loadKeyBindings } from '../lib/keys.js';
 import { loadConfig } from '../lib/config.js';
@@ -289,8 +290,8 @@ async function main() {
   const cssCellW = term.cellWidth;
   const cssCellH = term.cellHeight;
   // Install reply handling before probing, then choose the initial capture
-  // format once. Advanced manual transport changes do not change the codec.
-  let forceCapture = () => {}, requestPreview = () => {}, screencastCleanup;
+  // format once. Switching away from file transport retires a raw codec.
+  let forceCapture = () => {}, requestPreview = () => {}, screencastCleanup, capturePolicy;
   let urlBar = null;
   let captureReady = false;
   const zoomControl = {
@@ -307,29 +308,36 @@ async function main() {
   await initializeTransport(() => { forceCapture(); });
   urlBar.render();
 
-  // Auto: JPEG (adaptive) for file transfer, PNG for inline.
-  // jpeg mode: fast JPEG during activity, PNG refinement when static
-  const fmt = config.format || 'auto';
+  // Negotiate terminal file/preference and CDP support before selecting raw.
   const transport = detectTransport();
-  const screenshotFormat = fmt === 'auto'
-    ? (transport === 'file' ? 'jpeg' : 'png')
-    : fmt;
+  capturePolicy = await createCapturePolicy(client, {
+    configured: config.format || 'auto', getTransport: detectTransport,
+    queryPreference: queryRawPreference,
+  });
 
-  console.error(`casty: ${term.width}x${term.height} cell=${term.cellWidth.toFixed(0)}x${term.cellHeight.toFixed(0)} zoom=${term.zoom.toFixed(2)} transport=${transport} format=${screenshotFormat}${screenshotFormat === 'jpeg' ? ' (adaptive)' : ''}`);
+  console.error(`casty: ${term.width}x${term.height} cell=${term.cellWidth.toFixed(0)}x${term.cellHeight.toFixed(0)} zoom=${term.zoom.toFixed(2)} transport=${transport} format=${capturePolicy.format}${capturePolicy.format === 'jpeg' ? ' (adaptive)' : ''}`);
 
   // Frame callback for screencast / captureScreenshot
   // sendFrame includes cursor positioning (single write)
   function onFrame(data) {
-    if (renderPaused) return;
-    sendFrame(data);
+    if (renderPaused) { discardRawFrame(data); return; }
+    try { sendFrame(data); }
+    catch(error) {
+      if(!isRaw(capturePolicy?.format))throw error;
+      discardRawFrame(data);capturePolicy.retireRaw();return;
+    }
     if (urlBar) urlBar.renderIfDirty();
   }
+
+  const firstFrame=capturePolicy.takeFirstFrame();
+  if(firstFrame)onFrame(firstFrame);
 
   // Phase 3: Start screencast
   ({ forceCapture, requestPreview, cleanup: screencastCleanup } = await startScreencast(client, {
     width: cssWidth,
     height: cssHeight,
-    format: screenshotFormat,
+    format: capturePolicy.format,
+    capturePolicy,
     onFrame,
   }));
 
@@ -383,6 +391,7 @@ async function main() {
     showCursor();
     try { process.stdin.setRawMode(false); } catch {}
     clearScreen();                 // Clear after everything is stopped — no re-render risk
+    capturePolicy?.close();
     cleanupTmp();
     printControlsHelp();
     // Last line on screen, so it is clear which casty ran (and whether to update).
@@ -405,12 +414,10 @@ async function main() {
   // (both firing together is coalesced by the debounce).
   process.stdout.on('resize', onResize);
   // Direct screenshot — bypasses screencast's capturing flag
-  const screenshotOpts = { format: screenshotFormat, optimizeForSpeed: true, captureBeyondViewport: false };
-  if (screenshotFormat === 'jpeg') screenshotOpts.quality = 85;
   captureReady = true;
   async function directCapture() {
     try {
-      const { data } = await client.send('Page.captureScreenshot', screenshotOpts);
+      const { data } = await capturePolicy.capture({quality:85});
       if (data) onFrame(data);
     } catch {}
   }
@@ -466,7 +473,8 @@ async function main() {
       ({ forceCapture, requestPreview, cleanup: screencastCleanup } = await startScreencast(client, {
         width: cw,
         height: ch,
-        format: screenshotFormat,
+        format: capturePolicy.format,
+        capturePolicy,
         onFrame,
       }));
     } catch (err) {

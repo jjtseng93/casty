@@ -360,4 +360,6 @@ CSS ピクセルのまま扱われます。フレーム解像度は変わりま�
 
 MIT
 
-`Ctrl-E` の `kitty` で現在の転送方式を表示し、`kitty inline` / `kitty file` で今回のセッションのみ切り替えます。auto は inline で開始し、一時画像ファイルへの照会に対応する OK を受け取った場合のみ file に切り替えます。700 ms でタイムアウトします。手動 file は照会を省略するため共有パスが必要です。`format: auto` はファイル照会成功時に adaptive JPEG、それ以外は PNG を選択します。手動の転送切り替えでは画像形式を変更しません。inline JPEG は対応するデコーダーが必要です。
+`Ctrl-E` の `kitty` で現在の転送方式を表示し、`kitty inline` / `kitty file` で今回のセッションのみ切り替えます。auto は inline で開始し、一時画像ファイルへの照会に対応する OK を受け取った場合のみ file に切り替えます。700 ms でタイムアウトします。手動 file は照会を省略するため共有パスが必要です。`format: auto` はファイル照会成功時に adaptive JPEG、それ以外は PNG を選択します。手動の転送切り替えではエンコード形式を維持します（raw は inline への切り替え時に元の設定へ戻ります）。inline JPEG は対応するデコーダーが必要です。
+
+file 転送では、端末が優先する生ピクセル形式を照会してから、CDP のスクリーンショットを一度試します。正確な `OK Buninu1 bgra` / `OK Buninu1 rgba` 応答と有効な CDP ファイル応答が揃った場合だけ raw を使い、明示的な PNG/JPEG/WebP 設定よりも優先します。この Buninu 独自拡張は画像エンコードとピクセルの base64 転送を省きます。未対応・タイムアウト・実行時エラーの場合は元の設定へ戻ります。auto は file で JPEG と静止時の PNG、inline で PNG を使います。inline では raw を照会せず、inline に切り替えるとそのセッションでは raw を無効にします。

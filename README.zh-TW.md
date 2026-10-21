@@ -357,4 +357,6 @@ casty 透過 `Emulation.setDeviceMetricsOverride` 模擬 `deviceScaleFactor = zo
 
 MIT
 
-按 `Ctrl-E`：`kitty` 顯示目前傳輸方式；`kitty inline` 或 `kitty file` 切換本次執行的模式，不修改設定檔。自動模式先用 inline，查詢暫存圖片檔，只有收到對應的 OK 才使用 file；700 毫秒逾時則保留 inline。手動 file 不做探測，必須能共用路徑。`format: auto` 在檔案探測成功後選用自適應 JPEG，否則用 PNG。手動切換傳輸方式不更改擷取格式；inline JPEG 需要接收端的解碼器支援。
+按 `Ctrl-E`：`kitty` 顯示目前傳輸方式；`kitty inline` 或 `kitty file` 切換本次執行的模式，不修改設定檔。自動模式先用 inline，查詢暫存圖片檔，只有收到對應的 OK 才使用 file；700 毫秒逾時則保留 inline。手動 file 不做探測，必須能共用路徑。`format: auto` 在檔案探測成功後選用自適應 JPEG，否則用 PNG。手動切換傳輸方式保留編碼格式（raw 切換成 inline 時則退回原設定）；inline JPEG 需要接收端的解碼器支援。
+
+使用 file 傳輸時，Casty 先查詢終端偏好的原始像素格式，再以一次截圖確認 CDP 支援。只有精確的 `OK Buninu1 bgra` 或 `OK Buninu1 rgba` 回覆，加上有效的 CDP 原始像素檔案回應，才會啟用 raw；優先於所有設定格式，包括明確指定的 PNG/JPEG/WebP。這是 Buninu 私有擴充，可省去圖片編碼及像素的 base64 傳輸。不支援、逾時或執行中失敗會退回原設定策略：auto 在 file 使用 JPEG 並於靜止時精修 PNG，在 inline 使用 PNG。inline 不探測 raw；切換成 inline 後，本次連線停用 raw。
