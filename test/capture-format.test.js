@@ -56,7 +56,7 @@ test('changing to inline retires raw before transmitting another frame',async()=
  const f=fixture();let transport='file';const calls=[];
  try{
   const policy=await createCapturePolicy({send:async(_m,p)=>{calls.push(p.format);return {data:p.format==='bgra'?f.data:'PNG'};}},{getTransport:()=>transport,queryPreference:async()=> 'bgra'});
-  policy.takeFirstFrame();transport='inline';expect((await policy.capture()).data).toBe('PNG');
+  policy.takeFirstFrame();transport='inline';expect(policy.format).toBe('png');expect((await policy.capture()).data).toBe('PNG');
   expect(calls).toEqual(['bgra','png']);policy.close();
  }finally{f.close();}
 });

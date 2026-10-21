@@ -40,7 +40,7 @@ casty is not a text-mode browser like w3m or lynx. It launches headless Chrome, 
 └──────────────────────────────────┘
 ```
 
-Chrome does all the rendering. casty is just a bridge (~2300 lines) that streams frames to your terminal and sends input back. No Playwright, no puppeteer — raw CDP over WebSocket.
+Chrome does all the rendering. casty is just a bridge that streams frames to your terminal and sends input back. No Playwright, no puppeteer — raw CDP over WebSocket.
 
 Since it's real Chrome, JavaScript, CSS, Canvas, and WebGL all work. Google login works too (stealth patches bypass bot detection). Mouse clicks, scrolling, dragging, typing — everything you'd expect.
 
@@ -200,6 +200,7 @@ reaching casty still cannot be forwarded.
 | `find [text]` (`/text`) | Find text in the page; `find` alone goes to the next match |
 | `eruda` (`devtools`) | Show or hide the [eruda](https://github.com/liriliri/eruda) console in the page (loaded from a CDN, needs network) |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | Show or set the zoom; 1 is the automatic zoom |
+| `kitty [inline\|file]` | Show transport and negotiated capture format, or switch transport for this session |
 | `pixelmouse [on\|off]` | Show mouse mode; query and enable pixels, or return to cells |
 | `help` (`?`) | List commands |
 | `quit` (`q`) | Quit |
@@ -253,6 +254,14 @@ Create `~/.casty/bookmarks.json`:
 | `mouseMode` | `1002` (button-event) or `1003` (any-event) | Auto (Ghostty→1003, others→1002) |
 | `media` | Enable camera/mic for WebRTC (experimental, requires `ffmpeg`) | `false` |
 
+### Image transport and capture format
+
+Press `Ctrl-E`: `kitty` shows the current transport and negotiated capture format (for example `Kitty: file · format=bgra`); `kitty inline` or `kitty file` switches it for this session without editing config. Auto transport starts inline, queries a temporary image file, and selects file only on a matching OK reply (700 ms timeout). Manual file mode bypasses the probe and requires shared paths. `format: auto` selects adaptive JPEG after a successful file probe, otherwise PNG. Manual transport switches preserve encoded formats (raw falls back when switching to inline); inline JPEG requires a decoder that supports it.
+
+When file transport is available, Casty first queries the terminal’s preferred raw pixel format, then probes CDP with one screenshot. An exact `OK Buninu1 bgra` or `OK Buninu1 rgba` reply plus a valid CDP raw-file response enables raw frames ahead of every configured codec, including explicit PNG/JPEG/WebP. This private Buninu extension avoids image encoding and base64 pixel transfer. Unsupported peers, timeouts or runtime errors fall back to the configured policy: auto uses JPEG with PNG refinement over file transport, or PNG inline. Inline never probes raw; switching to inline retires raw for the session.
+
+Raw files are forwarded with Kitty `t=t`: the terminal deletes them after reading. Casty accepts producer-supplied paths without directory-name or filename special cases and does not delete those files itself; the producer cleans up abandoned files. Format, dimensions and file size are still validated.
+
 ### Capture interval
 
 Set `CASTY_CAPTURE_MIN_INTERVAL=16` to use a 16 ms minimum interval between high-resolution capture starts (default: 50 ms). Accepts integer milliseconds from 0 to 60000; 0 disables the time throttle while retaining one capture at a time. Invalid values warn and fall back to 50 ms. Read when a screencast starts; restart Casty to change it. Actual FPS also depends on rendering, encoding and terminal throughput. Forced captures still bypass this throttle.
@@ -274,13 +283,13 @@ CASTY_CAPTURE_MIN_INTERVAL=16 bun index.js
 <details>
 <summary>Technical Details</summary>
 
-The whole thing is about 1200 lines of JavaScript. Here's what's going on under the hood:
+Casty is written in JavaScript. Here's what's going on under the hood:
 
 - Launches chrome-headless-shell and talks to it via raw CDP WebSocket
 - `Runtime.enable` is never sent (it breaks Google login — discovered the hard way)
 - Stealth patches are injected via `Page.addScriptToEvaluateOnNewDocument` before any page loads
 - Frame capture is hybrid: low-res Screencast triggers change detection, then `Page.captureScreenshot` grabs hi-res frames with proper DPR
-- File transfer mode uses adaptive JPEG→PNG: fast JPEG during scrolling/video, crisp PNG after things settle
+- When JPEG is selected, file transfer uses adaptive JPEG→PNG: fast JPEG during scrolling/video, crisp PNG after things settle
 - Terminal pixel size is detected via CSI 14t for auto-zoom
 
 ```
@@ -366,7 +375,3 @@ real DSF keeps its launch value until casty restarts.
 ## License
 
 MIT
-
-Press `Ctrl-E`: `kitty` shows the current transport; `kitty inline` or `kitty file` switches it for this session without editing config. Auto transport starts inline, queries a temporary image file, and selects file only on a matching OK reply (700 ms timeout). Manual file mode bypasses the probe and requires shared paths. `format: auto` selects adaptive JPEG after a successful file probe, otherwise PNG. Manual transport switches preserve encoded formats (raw falls back when switching to inline); inline JPEG requires a decoder that supports it.
-
-When file transport is available, Casty first queries the terminal’s preferred raw pixel format, then probes CDP with one screenshot. An exact `OK Buninu1 bgra` or `OK Buninu1 rgba` reply plus a valid CDP raw-file response enables raw frames ahead of every configured codec, including explicit PNG/JPEG/WebP. This private Buninu extension avoids image encoding and base64 pixel transfer. Unsupported peers, timeouts or runtime errors fall back to the configured policy: auto uses JPEG with PNG refinement over file transport, or PNG inline. Inline never probes raw; switching to inline retires raw for the session.

@@ -40,7 +40,7 @@ casty 不是 w3m 或 lynx 那種文字模式瀏覽器。它會啟動無頭（hea
 └──────────────────────────────────┘
 ```
 
-所有渲染都由 Chrome 負責。casty 只是一座橋（約 2300 行），把畫面串流到終端機、再把輸入送回去。不用 Playwright，也不用 puppeteer，直接透過 WebSocket 使用原生 CDP。
+所有渲染都由 Chrome 負責。casty 只是一座橋，把畫面串流到終端機、再把輸入送回去。不用 Playwright，也不用 puppeteer，直接透過 WebSocket 使用原生 CDP。
 
 因為是真正的 Chrome，JavaScript、CSS、Canvas、WebGL 全都能用，Google 登入也沒問題（stealth 修補可以繞過機器人偵測）。滑鼠點擊、捲動、拖曳、打字，都跟一般瀏覽器一樣。
 
@@ -193,6 +193,7 @@ Casty 會自動偵測 [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/
 | `find [文字]` (`/文字`) | 在頁面中尋找；只打 `find` 跳到下一個 |
 | `eruda` (`devtools`) | 在頁面裡顯示或隱藏 [eruda](https://github.com/liriliri/eruda) 主控台（從 CDN 載入，需要網路） |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | 顯示或設定縮放，1 是自動縮放 |
+| `kitty [inline\|file]` | 顯示傳輸方式與協商後的截圖格式，或切換本次傳輸方式 |
 | `pixelmouse [on\|off]` | 顯示滑鼠模式；查詢並啟用像素座標，或退回字元格座標 |
 | `help` (`?`) | 列出指令 |
 | `quit` (`q`) | 結束 |
@@ -246,6 +247,14 @@ Casty 啟動時會查詢模式 1016；收到支援回覆才啟用像素座標，
 | `mouseMode` | `1002`（按鍵事件）或 `1003`（所有事件） | 自動（Ghostty→1003，其他→1002） |
 | `media` | 為 WebRTC 啟用攝影機/麥克風（實驗性，需要 `ffmpeg`） | `false` |
 
+### 影像傳輸與截圖格式
+
+按 `Ctrl-E`：`kitty` 顯示目前傳輸方式與協商後的截圖格式（例如 `Kitty: file · format=bgra`）；`kitty inline` 或 `kitty file` 切換本次執行的模式，不修改設定檔。自動模式先用 inline，查詢暫存圖片檔，只有收到對應的 OK 才使用 file；700 毫秒逾時則保留 inline。手動 file 不做探測，必須能共用路徑。`format: auto` 在檔案探測成功後選用自適應 JPEG，否則用 PNG。手動切換傳輸方式保留編碼格式（raw 切換成 inline 時則退回原設定）；inline JPEG 需要接收端的解碼器支援。
+
+使用 file 傳輸時，Casty 先查詢終端偏好的原始像素格式，再以一次截圖確認 CDP 支援。只有精確的 `OK Buninu1 bgra` 或 `OK Buninu1 rgba` 回覆，加上有效的 CDP 原始像素檔案回應，才會啟用 raw；優先於所有設定格式，包括明確指定的 PNG/JPEG/WebP。這是 Buninu 私有擴充，可省去圖片編碼及像素的 base64 傳輸。不支援、逾時或執行中失敗會退回原設定策略：auto 在 file 使用 JPEG 並於靜止時精修 PNG，在 inline 使用 PNG。inline 不探測 raw；切換成 inline 後，本次連線停用 raw。
+
+原始像素檔案以 Kitty `t=t` 轉送，由終端機讀取後刪除。Casty 接受產生端提供的路徑，不特判目錄或檔名，也不自行刪除這些檔案；未被消費的檔案由產生端兜底清理。仍會驗證格式、尺寸與檔案大小。
+
 ### 截圖間隔
 
 設定 `CASTY_CAPTURE_MIN_INTERVAL=16` 可將高解析度截圖開始之間的最短間隔改成 16 ms，預設為 50 ms。接受 0–60000 的整數毫秒；0 表示取消時間節流，但仍一次只處理一張截圖。無效值會提示並回退 50 ms。串流啟動時讀取設定，修改後請重啟 Casty。實際 FPS 仍受繪製、編碼與終端輸出速度限制；強制截圖仍可繞過節流。
@@ -267,13 +276,13 @@ CASTY_CAPTURE_MIN_INTERVAL=16 bun index.js
 <details>
 <summary>技術細節</summary>
 
-整個程式約 2300 行 JavaScript。底層做的事情：
+Casty 使用 JavaScript 實作。底層做的事情：
 
 - 啟動 chrome-headless-shell，透過原生 CDP WebSocket 溝通
 - 絕對不送 `Runtime.enable`（會讓 Google 登入壞掉，這是吃過苦頭才發現的）
 - stealth 修補透過 `Page.addScriptToEvaluateOnNewDocument` 在頁面載入前注入
 - 畫面擷取採混合方式：低解析度 Screencast 負責偵測變化，再用 `Page.captureScreenshot` 取得符合 DPR 的高解析度畫面
-- 檔案傳輸模式使用自適應 JPEG→PNG：捲動或播放影片時用快速的 JPEG，畫面靜止後改用清晰的 PNG
+- 選用 JPEG 時，檔案傳輸模式使用自適應 JPEG→PNG：捲動或播放影片時用快速的 JPEG，畫面靜止後改用清晰的 PNG
 - 透過 CSI 14t 偵測終端機像素尺寸，自動調整縮放
 
 ```
@@ -356,7 +365,3 @@ casty 透過 `Emulation.setDeviceMetricsOverride` 模擬 `deviceScaleFactor = zo
 ## 授權
 
 MIT
-
-按 `Ctrl-E`：`kitty` 顯示目前傳輸方式；`kitty inline` 或 `kitty file` 切換本次執行的模式，不修改設定檔。自動模式先用 inline，查詢暫存圖片檔，只有收到對應的 OK 才使用 file；700 毫秒逾時則保留 inline。手動 file 不做探測，必須能共用路徑。`format: auto` 在檔案探測成功後選用自適應 JPEG，否則用 PNG。手動切換傳輸方式保留編碼格式（raw 切換成 inline 時則退回原設定）；inline JPEG 需要接收端的解碼器支援。
-
-使用 file 傳輸時，Casty 先查詢終端偏好的原始像素格式，再以一次截圖確認 CDP 支援。只有精確的 `OK Buninu1 bgra` 或 `OK Buninu1 rgba` 回覆，加上有效的 CDP 原始像素檔案回應，才會啟用 raw；優先於所有設定格式，包括明確指定的 PNG/JPEG/WebP。這是 Buninu 私有擴充，可省去圖片編碼及像素的 base64 傳輸。不支援、逾時或執行中失敗會退回原設定策略：auto 在 file 使用 JPEG 並於靜止時精修 PNG，在 inline 使用 PNG。inline 不探測 raw；切換成 inline 後，本次連線停用 raw。

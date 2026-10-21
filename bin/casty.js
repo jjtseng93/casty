@@ -303,7 +303,7 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   process.on('SIGHUP', shutdown);
-  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown }, { noShortcuts });
+  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown }, { noShortcuts, getCaptureFormat: () => capturePolicy?.format });
   enableMouse();
   await initializeTransport(() => { forceCapture(); });
   urlBar.render();
