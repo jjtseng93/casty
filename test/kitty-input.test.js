@@ -11,7 +11,7 @@ test('Kitty input reaches CDP, local commands stay local, releases cannot quit, 
  process.stdin.setRawMode=()=>{};process.stdin.resume=()=>process.stdin;
  process.on('SIGINT',()=>quits++);
  const client=new EventEmitter();client.send=async(method,params)=>{events.push({method,params});return {};};
- const bar=startInputHandling(client,10,20,1,{'ctrl+e':'command','alt+l':'url_bar','ctrl+q':'quit','alt+c':'copy','ctrl+v':'paste'},()=>{},()=>{});
+ const bar=startInputHandling(client,10,20,1,{'ctrl+e':'command','alt+l':'url_bar','ctrl+q':'quit','alt+c':'copy','ctrl+v':'paste'},()=>{});
  bar.history.file=null;
  const feed=async text=>{process.stdin.emit('data',Buffer.from(text));await Bun.sleep(15);};
  await feed('\x03');assert.equal(quits,0);

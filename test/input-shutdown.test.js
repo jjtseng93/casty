@@ -19,7 +19,7 @@ for(const mode of ['shutdown-reject','shutdown-resolve','live-reject']) {
       }
       return Promise.resolve({});
     };
-    const bar=startInputHandling(client,10,20,1,{},()=>{},()=>captures++);
+    const bar=startInputHandling(client,10,20,1,{},()=>captures++);
     bar.history.file=null;
     process.stdin.emit('data',Buffer.from('a'));
     process.stdin.emit('data',Buffer.from('b'));

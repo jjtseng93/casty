@@ -279,8 +279,6 @@ async function main() {
   // Log WebSocket errors to stderr (prevent unhandled crash)
   client.on('error', (err) => { console.error('casty: CDP error:', err.message); });
 
-  let renderPaused = false;
-  const pauseRender = (p = true) => { renderPaused = p; };
 
   hideCursor();
   clearScreen();
@@ -303,7 +301,7 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   process.on('SIGHUP', shutdown);
-  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, pauseRender, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown }, { noShortcuts, getCaptureFormat: () => capturePolicy?.format });
+  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown }, { noShortcuts, getCaptureFormat: () => capturePolicy?.format });
   enableMouse();
   await initializeTransport(() => { forceCapture(); });
   urlBar.render();
@@ -322,7 +320,7 @@ async function main() {
   // Frame callback for screencast / captureScreenshot
   // sendFrame includes cursor positioning (single write)
   function onFrame(data) {
-    if (renderPaused) return;
+    if (shuttingDown) return;
     try { sendFrame(data); }
     catch(error) {
       if(!isRaw(capturePolicy?.format))throw error;
@@ -375,7 +373,6 @@ async function main() {
     shuttingDown = true;
     console.error('casty: shutting down...');
     stopInputHandling();
-    renderPaused = true;           // Stop rendering first
     // A stalled browser must not hold up quitting; it is killed below anyway.
     await Promise.race([
       (async () => {

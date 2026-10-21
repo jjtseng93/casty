@@ -278,3 +278,27 @@ test('moving left to the start of a scrolled line shows the prompt again', () =>
   bar.handleInput('\x1b[D');
   assert.deepEqual(view(bar, 20), { line: 'cmd> xxxxxxxxxxxxxxx', cursorCol: 5 });
 });
+
+test('live image frames restore the editing cursor without repainting the address text', () => {
+  const bar = new UrlBar({ history: new PromptHistory(null) });
+  bar.editing = true;
+  bar.text = 'hello世界';
+  bar.cursor = 6;
+  bar._dirty = false;
+  const output = [];
+  const write = process.stdout.write;
+  process.stdout.write = chunk => { output.push(String(chunk)); return true; };
+  try {
+    const col = bar._editView(process.stdout.columns || 80).cursorCol + 1;
+    bar.renderIfDirty();
+    assert.equal(output.pop(), `\x1b[1;${col}H\x1b[?25h`);
+    bar.selectAll = true;
+    bar.renderIfDirty();
+    assert.match(output.pop(), /^\x1b\[1;\d+H\x1b\[\?25l$/);
+    bar.editing = false;
+    bar.renderIfDirty();
+    assert.equal(output.length, 0);
+  } finally {
+    process.stdout.write = write;
+  }
+});

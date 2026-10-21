@@ -30,7 +30,7 @@ test('no-shortcuts forwards all page keys; @ opens empty commands, URL editing a
  process.on('SIGINT',()=>quits++);
  const client=new EventEmitter();client.send=async(method,params)=>{events.push({method,params});return {};};
  const bindings={'ctrl+q':'quit','ctrl+e':'command','ctrl+v':'paste','alt+c':'copy','alt+l':'url_bar','ctrl+u':'back','ctrl+k':'forward','alt+left':'back','ctrl+l':'hints','alt+f':'hints'};
- const bar=startInputHandling(client,10,20,1,bindings,()=>{},()=>{},null,{}, {noShortcuts:true});
+ const bar=startInputHandling(client,10,20,1,bindings,()=>{},null,{}, {noShortcuts:true});
  bar.history.file=null;bar.setUrl('https://example.com/');
  const feed=async s=>{process.stdin.emit('data',Buffer.from(s));await Bun.sleep(15);};
  const click=async col=>{await feed('\\x1b[<0;'+col+';1M');await feed('\\x1b[<0;'+col+';1m');};

@@ -12,7 +12,7 @@ test('Ctrl+E pixelmouse on/off switches real input handling and keeps URL bar co
  process.stdout.write=s=>{output.push(String(s));return true;};
  process.stdin.setRawMode=()=>{};process.stdin.resume=()=>process.stdin;
  const client=new EventEmitter();client.send=async(method,params)=>{events.push({method,params});return method==='Page.getNavigationHistory'?{currentIndex:0,entries:[]}:{};};
- const bar=startInputHandling(client,10,20,2,{'ctrl+e':'command'},()=>{},()=>{});
+ const bar=startInputHandling(client,10,20,2,{'ctrl+e':'command'},()=>{});
  bar.history.file=null;
  const feed=async text=>{process.stdin.emit('data',Buffer.from(text));await Bun.sleep(10);};
  const command=async text=>{await feed('\\x05');for(const c of text)await feed(c);await feed('\\r');};
