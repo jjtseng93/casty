@@ -158,7 +158,7 @@ async function flushOutput() {
 // Ensure a browser is installed (downloads Chrome Headless Shell on first run).
 await ensureChrome();
 
-import {createCapturePolicy,discardRawFrame,isRaw} from '../lib/capture-format.js';
+import {createCapturePolicy,isRaw} from '../lib/capture-format.js';
 import { startBrowser, setupPage, startScreencast, stopScreencast } from '../lib/browser.js';
 import { queryRawPreference, sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
 import { enableMouse, disableMouse, startInputHandling, stopInputHandling } from '../lib/input.js';
@@ -320,11 +320,11 @@ async function main() {
   // Frame callback for screencast / captureScreenshot
   // sendFrame includes cursor positioning (single write)
   function onFrame(data) {
-    if (renderPaused) { discardRawFrame(data); return; }
+    if (renderPaused) return;
     try { sendFrame(data); }
     catch(error) {
       if(!isRaw(capturePolicy?.format))throw error;
-      discardRawFrame(data);capturePolicy.retireRaw();return;
+      capturePolicy.retireRaw();return;
     }
     if (urlBar) urlBar.renderIfDirty();
   }
