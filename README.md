@@ -262,6 +262,10 @@ When file transport is available, Casty first queries the terminal’s preferred
 
 Raw files are forwarded with Kitty `t=t`: the terminal deletes them after reading. Casty accepts producer-supplied paths without directory-name or filename special cases and does not delete those files itself; the producer cleans up abandoned files. Format, dimensions and file size are still validated.
 
+Negotiated raw captures use standard CDP `clip` with `scale: 1`, retaining fractional CSS dimensions until physical-pixel conversion. `Page.getLayoutMetrics` supplies the document scroll position. This keeps the output aligned with terminal cells at fractional zoom (for example 1918×1053 at 1.75×), avoiding an unnecessary bunterm resize. Encoded PNG/JPEG captures retain their previous behavior for compatibility with Chromium versions that round fractional clips differently.
+
+Change-detection screencasts include a private `clip` extension alongside standard `maxWidth/maxHeight`, using the same width/height and `scale: 1`. Browser/Land crop at native pixel density without resizing; Chromium ignores `clip` and uses the standard max limits. These notification images are never displayed, including during navigation. This does not yet remove image payloads from raw-mode notifications.
+
 ### Capture interval
 
 Set `CASTY_CAPTURE_MIN_INTERVAL=16` to use a 16 ms minimum interval between high-resolution capture starts (default: 50 ms). Accepts integer milliseconds from 0 to 60000; 0 disables the time throttle while retaining one capture at a time. Invalid values warn and fall back to 50 ms. Read when a screencast starts; restart Casty to change it. Actual FPS also depends on rendering, encoding and terminal throughput. Forced captures still bypass this throttle.

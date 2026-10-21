@@ -158,8 +158,8 @@ async function flushOutput() {
 // Ensure a browser is installed (downloads Chrome Headless Shell on first run).
 await ensureChrome();
 
-import {createCapturePolicy,isRaw} from '../lib/capture-format.js';
-import { startBrowser, setupPage, startScreencast, stopScreencast } from '../lib/browser.js';
+import {createCapturePolicy,isRaw,viewportClip} from '../lib/capture-format.js';
+import { startBrowser, setupPage, startScreencast, stopScreencast, screencastRegion } from '../lib/browser.js';
 import { queryRawPreference, sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
 import { enableMouse, disableMouse, startInputHandling, stopInputHandling } from '../lib/input.js';
 import { loadKeyBindings } from '../lib/keys.js';
@@ -291,7 +291,7 @@ async function main() {
   const cssCellH = term.cellHeight;
   // Install reply handling before probing, then choose the initial capture
   // format once. Switching away from file transport retires a raw codec.
-  let forceCapture = () => {}, requestPreview = () => {}, screencastCleanup, capturePolicy;
+  let forceCapture = () => {}, screencastCleanup, capturePolicy;
   let urlBar = null;
   let captureReady = false;
   const zoomControl = {
@@ -310,9 +310,11 @@ async function main() {
 
   // Negotiate terminal file/preference and CDP support before selecting raw.
   const transport = detectTransport();
+  let captureGeometry={width:term.width,height:viewHeight,zoom:term.zoom};
   capturePolicy = await createCapturePolicy(client, {
     configured: config.format || 'auto', getTransport: detectTransport,
     queryPreference: queryRawPreference,
+    getClip: () => viewportClip(client,captureGeometry).catch(()=>undefined),
   });
 
   console.error(`casty: ${term.width}x${term.height} cell=${term.cellWidth.toFixed(0)}x${term.cellHeight.toFixed(0)} zoom=${term.zoom.toFixed(2)} transport=${transport} format=${capturePolicy.format}${capturePolicy.format === 'jpeg' ? ' (adaptive)' : ''}`);
@@ -333,7 +335,7 @@ async function main() {
   if(firstFrame)onFrame(firstFrame);
 
   // Phase 3: Start screencast
-  ({ forceCapture, requestPreview, cleanup: screencastCleanup } = await startScreencast(client, {
+  ({ forceCapture, cleanup: screencastCleanup } = await startScreencast(client, {
     width: cssWidth,
     height: cssHeight,
     format: capturePolicy.format,
@@ -355,19 +357,16 @@ async function main() {
   client.on('Page.loadEventFired', delayedCapture);
   client.on('Page.frameNavigated', ({ frame }) => {
     if (!frame.parentId) {
-      requestPreview();
       delayedCapture();
     }
   });
   client.on('Page.navigatedWithinDocument', () => {
-    requestPreview();
     delayedCapture();
   });
 
   // Install loading, capture, and input listeners before navigating. A local
   // server can otherwise finish before they exist, leaving the spinner stuck
   // and the displayed frame out of sync with subsequent pointer input.
-  requestPreview();
   client.send('Page.navigate', { url }).catch(e => console.error('casty: navigate error:', e.message));
 
   async function shutdown() {
@@ -431,6 +430,7 @@ async function main() {
 
       const t = await getTermInfo({ keepAlive: true });
       const vh = t.height - t.cellHeight;
+      captureGeometry={width:t.width,height:vh,zoom:t.zoom};
       const cw = Math.round(t.width / t.zoom);
       const ch = Math.round(vh / t.zoom);
       setDisplaySize(t.cols, t.rows - 1);
@@ -455,7 +455,7 @@ async function main() {
         client.on('Page.screencastFrame', onFirstFrame);
         client.send('Page.startScreencast', {
           format: 'jpeg', quality: 10,
-          maxWidth: Math.round(cw / 4), maxHeight: Math.round(ch / 4),
+          ...screencastRegion(cw, ch),
           everyNthFrame: 1,
         }).catch(() => resolve());
         setTimeout(() => {
@@ -470,7 +470,7 @@ async function main() {
       urlBar.render();
 
       // Restart screencast for ongoing change detection
-      ({ forceCapture, requestPreview, cleanup: screencastCleanup } = await startScreencast(client, {
+      ({ forceCapture, cleanup: screencastCleanup } = await startScreencast(client, {
         width: cw,
         height: ch,
         format: capturePolicy.format,

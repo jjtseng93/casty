@@ -68,3 +68,35 @@ test('arbitrary producer names use the same negotiated transport without cleanup
   expect(p.format).toBe('bgra');p.close();expect(existsSync(f.path)).toBe(true);
  }finally{f.close();}
 });
+
+test('clip keeps fractional size and follows document scroll for raw probe and captures',async()=>{
+ const {viewportClip}=await import('../lib/capture-format.js');
+ const f=fixture();const calls=[];let y=0;
+ const geometry={width:1918,height:1053,zoom:1.75};
+ const client={send:async(method,params)=>{
+  if(method==='Page.getLayoutMetrics')return {cssVisualViewport:{pageX:0,pageY:y}};
+  calls.push(params);return {data:params.format==='bgra'?f.data:'PNG'};
+ }};
+ try {
+  const policy=await createCapturePolicy(client,{getTransport:()=> 'file',queryPreference:async()=> 'bgra',getClip:()=>viewportClip(client,geometry)});
+  expect(calls[0].clip).toEqual({x:0,y:0,width:1096,height:1053/1.75,scale:1});
+  y=200;await policy.capture();expect(calls.at(-1).clip.y).toBe(200);
+  geometry.height=999;await policy.capture();expect(calls.at(-1).clip.height).toBe(999/1.75);
+  policy.retireRaw();await policy.capture();expect(calls.at(-1).clip).toBeUndefined();
+  policy.close();
+ }finally{f.close();}
+});
+
+test('screencast keeps Chromium max limits plus crop extension and never displays notification images',async()=>{
+ const {EventEmitter}=await import('node:events');
+ const client=new EventEmitter(),calls=[],frames=[];
+ client.send=async(method,params)=>{calls.push({method,params});return method==='Page.captureScreenshot'?{data:'full-frame'}:{};};
+ const session=await startScreencast(client,{width:800,height:600,format:'png',onFrame:data=>frames.push(data)});
+ try{
+  await Bun.sleep(10);
+  expect(calls.find(c=>c.method==='Page.startScreencast').params).toMatchObject({maxWidth:200,maxHeight:150,clip:{x:0,y:0,width:200,height:150,scale:1}});
+  client.emit('Page.screencastFrame',{sessionId:1,data:'cropped-notification'});
+  await Bun.sleep(70);
+  expect(frames.length).toBeGreaterThan(0);expect(frames.every(data=>data==='full-frame')).toBe(true);
+ }finally{session.cleanup();}
+});
