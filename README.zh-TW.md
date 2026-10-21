@@ -257,6 +257,8 @@ Casty 啟動時會查詢模式 1016；收到支援回覆才啟用像素座標，
 
 協商成功的 raw 截圖使用標準 CDP `clip`，固定 `scale: 1`，小數 CSS 尺寸保留到換算實體像素時才取整；透過 `Page.getLayoutMetrics` 取得頁面捲動位置。這讓非整數縮放仍精確對齊終端字元格（例如 1.75 倍時的 1918×1053），避免 bunterm 多做一次縮放。PNG／JPEG 路徑維持原行為，兼容小數 clip 取整方式不同的 Chromium 版本。
 
+raw 協商成功後，導航中斷的截圖或已被移除的舊畫面會略過，不會因此永久停用 raw；不支援的格式或無效 raw 回應仍退回原本編碼。
+
 變動偵測 screencast 同時帶標準 `maxWidth/maxHeight` 和私有 `clip` 擴充，使用相同寬高及 `scale: 1`。Browser／Land 保持原像素密度直接裁切、不縮放；Chromium 忽略 `clip` 並使用原本 max 限制。通知圖片不會顯示，導航時亦同。目前 raw 模式的通知仍有圖片，尚未改成純通知。
 
 ### 截圖間隔

@@ -158,7 +158,7 @@ async function flushOutput() {
 // Ensure a browser is installed (downloads Chrome Headless Shell on first run).
 await ensureChrome();
 
-import {createCapturePolicy,isRaw,viewportClip} from '../lib/capture-format.js';
+import {transientRawCaptureError,createCapturePolicy,isRaw,viewportClip} from '../lib/capture-format.js';
 import { startBrowser, setupPage, startScreencast, stopScreencast, screencastRegion } from '../lib/browser.js';
 import { queryRawPreference, sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
 import { enableMouse, disableMouse, startInputHandling, stopInputHandling } from '../lib/input.js';
@@ -326,7 +326,8 @@ async function main() {
     try { sendFrame(data); }
     catch(error) {
       if(!isRaw(capturePolicy?.format))throw error;
-      capturePolicy.retireRaw();return;
+      if (!transientRawCaptureError(error)) capturePolicy.retireRaw();
+      return;
     }
     if (urlBar) urlBar.renderIfDirty();
   }

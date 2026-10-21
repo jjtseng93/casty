@@ -100,3 +100,15 @@ test('screencast keeps Chromium max limits plus crop extension and never display
   expect(frames.length).toBeGreaterThan(0);expect(frames.every(data=>data==='full-frame')).toBe(true);
  }finally{session.cleanup();}
 });
+
+test('navigation invalidation drops one raw capture without permanently changing format',async()=>{
+ const f=fixture();let failure=null;const formats=[];
+ try{
+  const policy=await createCapturePolicy({send:async(_m,p)=>{formats.push(p.format);if(failure){const e=failure;failure=null;throw e;}return {data:f.data};}},{getTransport:()=> 'file',queryPreference:async()=> 'bgra'});
+  for(const error of [Error('compositor closed'),Error('Renderer closed during capture'),Object.assign(Error('removed old frame'),{code:'ENOENT'})]){
+   failure=error;await expect(policy.capture()).rejects.toThrow();
+   expect(policy.format).toBe('bgra');expect((await policy.capture()).data).toBe(f.data);
+  }
+  expect(formats.every(f=>f==='bgra')).toBe(true);policy.close();
+ }finally{f.close();}
+});
