@@ -2,21 +2,21 @@ import {test,expect} from 'bun:test';
 import {mkdtempSync,writeFileSync,rmSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createCapturePolicy,standardFormat,discardRawFrame} from '../lib/capture-format.js';
+import {createCapturePolicy,standardFormat} from '../lib/capture-format.js';
 import {startScreencast} from '../lib/browser.js';
 function fixture(format='bgra',producer='land'){
- const dir=mkdtempSync(join(tmpdir(),'tty-graphics-protocol-'+producer+'-')),path=join(dir,'1.'+format);
+ const dir=mkdtempSync(join(tmpdir(),'raw-test-'+producer+'-')),path=join(dir,'pixels-without-extension');
  writeFileSync(path,Buffer.from([1,2,3,255]));
  return {dir,path,data:JSON.stringify({version:1,transport:'file',path,format,width:1,height:1,stride:4,bytes:4}),close:()=>rmSync(dir,{recursive:true,force:true})};
 }
-test('raw outranks every setting and probe frame is reused; close releases unclaimed frame',async()=>{
+test('raw outranks every setting and probe frame is reused; close leaves producer files untouched',async()=>{
  for(const configured of ['auto','png','jpeg','webp'])for(const format of ['bgra','rgba']){
   const f=fixture(format);let calls=0;
   try{
    const policy=await createCapturePolicy({send:async()=>{calls++;return {data:f.data};}},{configured,getTransport:()=> 'file',queryPreference:async()=>format});
    expect(policy.format).toBe(format);expect(calls).toBe(1);
-   if(configured==='auto'){expect(policy.takeFirstFrame()).toBe(f.data);expect(policy.takeFirstFrame()).toBeUndefined();discardRawFrame(f.data);}
-   policy.close();expect(existsSync(f.path)).toBe(false);
+   if(configured==='auto'){expect(policy.takeFirstFrame()).toBe(f.data);expect(policy.takeFirstFrame()).toBeUndefined();}
+   policy.close();expect(existsSync(f.path)).toBe(true);
   }finally{f.close();}
  }
 });
@@ -29,13 +29,12 @@ test('rejected, ignored, missing and timed-out raw formats restore original code
  const policy=await createCapturePolicy({send(){throw Error('no raw');}},{getTransport:()=> 'inline',queryPreference:()=>{queried=true;}});
  expect(policy.format).toBe('png');expect(queried).toBe(false);policy.close();
 });
-test('late raw probe and paused frames are cleaned without touching arbitrary paths',async()=>{
+test('late raw probe leaves producer files untouched',async()=>{
  const f=fixture();let resolve;
  try{
   const policy=await createCapturePolicy({send:()=>new Promise(r=>resolve=r)},{getTransport:()=> 'file',queryPreference:async()=> 'bgra',timeout:5});
   expect(policy.format).toBe('jpeg');resolve({data:f.data});await Bun.sleep(1);
-  expect(existsSync(f.path)).toBe(false);policy.close();
-  const other=join(f.dir,'unrelated');writeFileSync(other,'keep');discardRawFrame(JSON.stringify({path:other}));expect(existsSync(other)).toBe(true);
+  expect(existsSync(f.path)).toBe(true);policy.close();
  }finally{f.close();}
 });
 test('live raw failure retires raw, restores JPEG refinement and survives resize reuse',async()=>{
@@ -45,7 +44,7 @@ test('live raw failure retires raw, restores JPEG refinement and survives resize
   return {data:'frame-'+params.format};
  }return {};}};
  const policy=await createCapturePolicy(client,{getTransport:()=> 'file',queryPreference:async()=> 'bgra'});
- discardRawFrame(policy.takeFirstFrame());
+ policy.takeFirstFrame();
  try{
   const s=await startScreencast(client,{width:100,height:100,format:policy.format,capturePolicy:policy,onFrame:s=>frames.push(s)});cleanup=s.cleanup;
   await Bun.sleep(650);
@@ -57,15 +56,15 @@ test('changing to inline retires raw before transmitting another frame',async()=
  const f=fixture();let transport='file';const calls=[];
  try{
   const policy=await createCapturePolicy({send:async(_m,p)=>{calls.push(p.format);return {data:p.format==='bgra'?f.data:'PNG'};}},{getTransport:()=>transport,queryPreference:async()=> 'bgra'});
-  discardRawFrame(policy.takeFirstFrame());transport='inline';expect((await policy.capture()).data).toBe('PNG');
+  policy.takeFirstFrame();transport='inline';expect((await policy.capture()).data).toBe('PNG');
   expect(calls).toEqual(['bgra','png']);policy.close();
  }finally{f.close();}
 });
 
-test('browser raw files use the same negotiated transport and safe cleanup',async()=>{
- const f=fixture('bgra','browser');
+test('arbitrary producer names use the same negotiated transport without cleanup',async()=>{
+ const f=fixture('bgra','any-producer');
  try{
   const p=await createCapturePolicy({send:async()=>({data:f.data})},{getTransport:()=> 'file',queryPreference:async()=> 'bgra'});
-  expect(p.format).toBe('bgra');p.close();expect(existsSync(f.path)).toBe(false);
+  expect(p.format).toBe('bgra');p.close();expect(existsSync(f.path)).toBe(true);
  }finally{f.close();}
 });
