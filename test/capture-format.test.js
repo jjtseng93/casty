@@ -4,8 +4,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createCapturePolicy,standardFormat,discardRawFrame} from '../lib/capture-format.js';
 import {startScreencast} from '../lib/browser.js';
-function fixture(format='bgra'){
- const dir=mkdtempSync(join(tmpdir(),'tty-graphics-protocol-land-')),path=join(dir,'1.'+format);
+function fixture(format='bgra',producer='land'){
+ const dir=mkdtempSync(join(tmpdir(),'tty-graphics-protocol-'+producer+'-')),path=join(dir,'1.'+format);
  writeFileSync(path,Buffer.from([1,2,3,255]));
  return {dir,path,data:JSON.stringify({version:1,transport:'file',path,format,width:1,height:1,stride:4,bytes:4}),close:()=>rmSync(dir,{recursive:true,force:true})};
 }
@@ -59,5 +59,13 @@ test('changing to inline retires raw before transmitting another frame',async()=
   const policy=await createCapturePolicy({send:async(_m,p)=>{calls.push(p.format);return {data:p.format==='bgra'?f.data:'PNG'};}},{getTransport:()=>transport,queryPreference:async()=> 'bgra'});
   discardRawFrame(policy.takeFirstFrame());transport='inline';expect((await policy.capture()).data).toBe('PNG');
   expect(calls).toEqual(['bgra','png']);policy.close();
+ }finally{f.close();}
+});
+
+test('browser raw files use the same negotiated transport and safe cleanup',async()=>{
+ const f=fixture('bgra','browser');
+ try{
+  const p=await createCapturePolicy({send:async()=>({data:f.data})},{getTransport:()=> 'file',queryPreference:async()=> 'bgra'});
+  expect(p.format).toBe('bgra');p.close();expect(existsSync(f.path)).toBe(false);
  }finally{f.close();}
 });
