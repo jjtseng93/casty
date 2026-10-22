@@ -200,6 +200,7 @@ reaching casty still cannot be forwarded.
 | `find [text]` (`/text`) | Find text in the page; `find` alone goes to the next match |
 | `eruda` (`devtools`) | Show or hide the [eruda](https://github.com/liriliri/eruda) console in the page (loaded from a CDN, needs network) |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | Show or set the zoom; 1 is the automatic zoom |
+| `cdp [ws]` | Show CDP addr:port, connection state, engine, protocol and pending requests; `cdp ws` shows the full WebSocket URL |
 | `kitty [inline\|file]` | Show transport and negotiated capture format, or switch transport for this session |
 | `pixelmouse [on\|off]` | Show mouse mode; query and enable pixels, or return to cells |
 | `help` (`?`) | List commands |

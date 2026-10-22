@@ -193,6 +193,7 @@ Casty 會自動偵測 [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/
 | `find [文字]` (`/文字`) | 在頁面中尋找；只打 `find` 跳到下一個 |
 | `eruda` (`devtools`) | 在頁面裡顯示或隱藏 [eruda](https://github.com/liriliri/eruda) 主控台（從 CDN 載入，需要網路） |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | 顯示或設定縮放，1 是自動縮放 |
+| `cdp [ws]` | 顯示 CDP addr:port、連線狀態、引擎、協定與待回覆數；`cdp ws` 顯示完整 WebSocket 接點 |
 | `kitty [inline\|file]` | 顯示傳輸方式與協商後的截圖格式，或切換本次傳輸方式 |
 | `pixelmouse [on\|off]` | 顯示滑鼠模式；查詢並啟用像素座標，或退回字元格座標 |
 | `help` (`?`) | 列出指令 |
