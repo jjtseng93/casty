@@ -1,16 +1,18 @@
 # casty
 
-在終端機裡執行真正的 Chrome 瀏覽器。
+透過終端機操作瀏覽器與 Wayland 桌面。
 
 **[English](README.md)** | **[日本語](README.ja.md)**
 
-> **這是 [jjtseng93](https://github.com/jjtseng93) 從 [sanohiro/casty](https://github.com/sanohiro/casty) fork 出來的版本。** 主要改動：
+> **這是 [jjtseng93](https://github.com/jjtseng93) 從 [sanohiro/casty](https://github.com/sanohiro/casty) fork 出來的版本。** 保留上游的 Chrome 終端瀏覽器，並把同一套 CDP／Kitty 接層擴充到 [Buninu Browser](https://github.com/jjtseng93/buninu-browser) 與 [Buninu Land](https://github.com/jjtseng93/buninu-land)；顯示內容可以是 Wayland 桌面，不只網頁。
 >
-> - 修復點擊連結：點按有時候點不到，或點到錯的元素（見[實作筆記](#實作筆記)）
-> - 適配 [Buninu Linux](https://github.com/jjtseng93/buninu-linux) 的 kernel VT：在那裡無法使用 Alt+Left / Alt+Right 導航快捷鍵，改用 **Ctrl+U / Ctrl+K** 上一頁 / 下一頁
-> - 修復本機伺服器（例如 `localhost`）比 casty 註冊事件監聽器更早回應的競態：會導致載入指示一直轉、顯示的畫面與輸入不同步
+> - 用 `CASTY_BROWSER` 選擇引擎；`--no-shortcuts` 將頁面按鍵傳給應用，仍可點 `@` 進入本地命令列。
+> - 協商 Kitty 鍵盤事件，包含 Super 與按鍵放開，並傳遞水平／垂直滾輪及修飾鍵。網址列的選取與剪貼板編輯仍在本地處理。
+> - 探測終端機的檔案傳輸能力；相容引擎與終端可協商 Buninu RGBA／BGRA 原始檔案，省去該路徑的圖片編碼。其他組合維持 PNG／JPEG 擷取。擷取間隔可調，預設 16 ms，不代表保證的幀率。
+>
+> 比對基準為上游 [**v1.3.3（`f72ecdd`）**](https://github.com/sanohiro/casty/commit/f72ecdd)。Chrome 渲染、Kitty 圖片與網址列編輯原本就來自上游，上游最新也修正了長網址編輯；這些是共同基礎，不是 fork 獨有功能。
 
-casty 不是 w3m 或 lynx 那種文字模式瀏覽器。它會啟動無頭（headless）Chrome，透過 CDP 取得渲染好的畫面，再用 Kitty graphics protocol 畫到終端機上。可以把它想成一個塞進終端機視窗的 Chrome 遠端桌面。
+Casty 透過 CDP 接收已繪製的畫面，以 Kitty graphics protocol 顯示並送回輸入。仍可使用 Chrome；選擇 Buninu Browser 或 Land，改變的是繪圖引擎與可用功能，不是終端傳輸方式。
 
 ![在 Ghostty 上執行的 casty](docs/screenshot-ghostty.png)
 
@@ -34,19 +36,19 @@ casty 不是 w3m 或 lynx 那種文字模式瀏覽器。它會啟動無頭（hea
     ▲ 畫面              │ 輸入
     │                   ▼
 ┌──────────────────────────────────┐
-│ Chrome（無頭）                   │
-│ 完整網頁渲染                     │
-│ JS, CSS, Canvas, WebGL           │
+│ Chrome / Buninu Browser / Land   │
+│ 引擎／合成器繪圖                 │
+│ 網頁或 Wayland 應用              │
 └──────────────────────────────────┘
 ```
 
-所有渲染都由 Chrome 負責。casty 只是一座橋，把畫面串流到終端機、再把輸入送回去。不用 Playwright，也不用 puppeteer，直接透過 WebSocket 使用原生 CDP。
+渲染由選定的引擎負責。Casty 直接透過 CDP WebSocket 橋接終端圖形與輸入，不使用 Playwright 或 Puppeteer。
 
-因為是真正的 Chrome，JavaScript、CSS、Canvas、WebGL 全都能用，Google 登入也沒問題（stealth 修補可以繞過機器人偵測）。滑鼠點擊、捲動、拖曳、打字，都跟一般瀏覽器一樣。
+使用 Chrome 時，網頁渲染、Canvas 與 WebGL 由 Chrome 提供；Buninu Browser 有自己的相容範圍，Land 則顯示 Wayland 客戶端。Chrome 專用的 stealth、攝影機與麥克風整合，不代表其他引擎也具備相同支援。
 
 ## 為什麼要用它？
 
-透過 SSH 在無頭伺服器上工作、又需要看一下網頁時，通常只能用 `curl`、`lynx` 或 X11 轉送。casty 讓你不離開終端機就能用真正的瀏覽器。不需要 X11、VNC 或 Wayland，只要一個支援 Kitty graphics 的終端機。
+透過 SSH 在無頭伺服器上工作、又需要看一下網頁時，通常只能用 `curl`、`lynx` 或 X11 轉送。casty 讓你不離開終端機就能用真正的瀏覽器。Chrome 路徑不需要 X11、VNC 或 Wayland 桌面，只要支援 Kitty graphics 的終端機；選擇 Land 時，該終端則成為 Wayland 客戶端的顯示入口。
 
 ### Google Meet 搭配攝影機與麥克風（實驗性）
 
@@ -151,6 +153,10 @@ CASTY_ZOOM=1.5 bun casty.js   # 在自動縮放之上再放大 1.5 倍
 | Ctrl+Q | 離開 |
 
 可透過 `~/.casty/keys.json` 自訂。
+
+### 滑鼠捲動
+
+垂直、水平與斜向滾輪依各自軸向傳遞，每個終端滾輪回報對應 100 CDP 像素，保留 Shift、Alt、Ctrl。若外層終端將 Shift＋滾輪轉為水平捲動，Casty 不會再次交換軸向。目前使用的終端滑鼠協定無法編碼 Super。應用本身須有可捲動內容，事件作用於回報的游標位置。
 
 ### Kitty 鍵盤
 

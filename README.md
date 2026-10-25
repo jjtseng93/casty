@@ -1,16 +1,18 @@
 # casty
 
-Run a real Chrome browser inside your terminal.
+Use browsers and a Wayland desktop through your terminal.
 
 **[日本語](README.ja.md)** | **[繁體中文](README.zh-TW.md)**
 
-> **This is [jjtseng93](https://github.com/jjtseng93)'s fork of [sanohiro/casty](https://github.com/sanohiro/casty).** Main changes:
+> **This is [jjtseng93](https://github.com/jjtseng93)'s fork of [sanohiro/casty](https://github.com/sanohiro/casty).** It retains the upstream Chrome terminal browser and extends the same CDP/Kitty bridge to [Buninu Browser](https://github.com/jjtseng93/buninu-browser) and [Buninu Land](https://github.com/jjtseng93/buninu-land), where the displayed content can be a Wayland desktop rather than a web page.
 >
-> - Fixes clicking links: taps and clicks sometimes missed or hit the wrong element (see [Implementation Notes](#implementation-notes))
-> - Adapts casty to the kernel VT of [Buninu Linux](https://github.com/jjtseng93/buninu-linux), where the Alt+Left / Alt+Right navigation shortcuts cannot be used: **Ctrl+U / Ctrl+K** go back / forward instead
-> - Fixes a race when a local server (e.g. `localhost`) responds before casty's event listeners are registered, which left the loading spinner stuck and the displayed frame out of sync with input
+> - Select the engine with `CASTY_BROWSER`; use `--no-shortcuts` to pass page keys through to applications, with an `@` command entry for local controls.
+> - Negotiate Kitty keyboard events, including Super and key releases, and forward horizontal/vertical wheel input with modifiers. Address-bar selection and clipboard editing remain local.
+> - Probe terminal file-transfer support and negotiate optional Buninu RGBA/BGRA files with compatible engines and terminals, avoiding image encoding on that path. Other peers retain PNG/JPEG capture. The capture interval is configurable and defaults to 16 ms, not a guaranteed frame rate.
+>
+> Compared against upstream [**v1.3.3 (`f72ecdd`)**](https://github.com/sanohiro/casty/commit/f72ecdd). Upstream already provides Chrome rendering, Kitty images and address-bar editing, including its latest long-URL fix; those are shared foundations, not fork-only features.
 
-casty is not a text-mode browser like w3m or lynx. It launches headless Chrome, grabs the rendered frames over CDP, and draws them in your terminal via Kitty graphics protocol. Think of it as a remote desktop for Chrome that fits in a terminal window.
+Casty receives rendered frames over CDP, draws them with the Kitty graphics protocol and sends input back. Chrome remains supported; choosing Buninu Browser or Land changes the rendering engine and available features, not the terminal transport.
 
 ![casty running on Ghostty](docs/screenshot-ghostty.png)
 
@@ -34,19 +36,19 @@ casty is not a text-mode browser like w3m or lynx. It launches headless Chrome, 
     ▲ frames            │ input
     │                   ▼
 ┌──────────────────────────────────┐
-│ Chrome (headless)                │
-│ Full web rendering               │
-│ JS, CSS, Canvas, WebGL           │
+│ Chrome / Buninu Browser / Land   │
+│ Engine / compositor rendering    │
+│ Pages or Wayland applications    │
 └──────────────────────────────────┘
 ```
 
-Chrome does all the rendering. casty is just a bridge that streams frames to your terminal and sends input back. No Playwright, no puppeteer — raw CDP over WebSocket.
+Rendering belongs to the selected engine. Casty bridges its CDP WebSocket to terminal graphics and input without Playwright or Puppeteer.
 
-Since it's real Chrome, JavaScript, CSS, Canvas, and WebGL all work. Google login works too (stealth patches bypass bot detection). Mouse clicks, scrolling, dragging, typing — everything you'd expect.
+With Chrome, web rendering, Canvas and WebGL come from Chrome. Buninu Browser has its own compatibility limits; Land renders Wayland clients. Chrome-specific stealth and camera/microphone integrations do not imply equivalent support in other engines.
 
 ## Why use this?
 
-If you're working over SSH on a headless server and need to check a web page, your options are usually `curl`, `lynx`, or forwarding X11. casty gives you an actual browser without leaving the terminal. No X11, no VNC, no Wayland — just a Kitty-compatible terminal.
+If you're working over SSH on a headless server and need to check a web page, your options are usually `curl`, `lynx`, or forwarding X11. casty gives you an actual browser without leaving the terminal. The Chrome path needs no X11, VNC or Wayland desktop; a Kitty-compatible terminal is enough. With Land selected, that terminal becomes the display for its Wayland clients.
 
 ### Google Meet with camera & mic (experimental)
 
@@ -154,6 +156,10 @@ Without this flag, the original shortcuts and spinner remain unchanged.
 | Ctrl+Q | Quit |
 
 Customizable via `~/.casty/keys.json`.
+
+### Mouse scrolling
+
+Vertical, horizontal and diagonal wheel reports are forwarded on their respective axes (100 CDP pixels per terminal wheel report), preserving Shift, Alt and Ctrl. Shift-wheel can become horizontal scrolling when the outer terminal maps it that way; Casty does not swap axes again. Terminal protocols used here do not encode Super in mouse reports. The application must have scrollable content, and events target the reported pointer position.
 
 ### Kitty keyboard
 

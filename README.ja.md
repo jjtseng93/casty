@@ -1,16 +1,18 @@
 # casty
 
-ターミナルで本物の Chrome ブラウザを動かす。
+ターミナルからブラウザや Wayland デスクトップを操作する。
 
 **[English](README.md)** | **[繁體中文](README.zh-TW.md)**
 
-> **これは [sanohiro/casty](https://github.com/sanohiro/casty) の [jjtseng93](https://github.com/jjtseng93) によるフォークです。** 主な変更点:
+> **これは [sanohiro/casty](https://github.com/sanohiro/casty) の [jjtseng93](https://github.com/jjtseng93) によるフォークです。** 上流の Chrome ターミナルブラウザを維持し、同じ CDP／Kitty ブリッジを [Buninu Browser](https://github.com/jjtseng93/buninu-browser) と [Buninu Land](https://github.com/jjtseng93/buninu-land) にも拡張しています。Web ページだけでなく Wayland デスクトップも表示できます。
 >
-> - リンクのクリックを修正: タップやクリックがときどき外れる、または別の要素に当たる問題（[実装メモ](#実装メモ)を参照）
-> - [Buninu Linux](https://github.com/jjtseng93/buninu-linux) のカーネル VT に対応: Alt+Left / Alt+Right のナビゲーションショートカットが使えないため、代わりに **Ctrl+U / Ctrl+K** で戻る / 進む
-> - ローカルサーバー（`localhost` など）が casty のイベントリスナー登録より先に応答する競合を修正: 読み込み表示が止まらず、表示中のフレームと入力がずれる問題
+> - `CASTY_BROWSER` でエンジンを選択。`--no-shortcuts` でページ上のキーをアプリケーションに転送し、ローカル操作には `@` のコマンド入口を使えます。
+> - Super やキーリリースを含む Kitty キーボードイベントを交渉し、水平・垂直ホイールと修飾キーを転送します。アドレスバーの選択・クリップボード編集はローカルで処理します。
+> - 端末のファイル転送を照会し、対応するエンジンと端末では Buninu RGBA／BGRA ファイルを交渉して画像エンコードを省略します。それ以外は PNG／JPEG キャプチャを維持します。間隔は変更可能で既定値は 16 ms ですが、フレームレートを保証するものではありません。
+>
+> 比較対象は上流 [**v1.3.3 (`f72ecdd`)**](https://github.com/sanohiro/casty/commit/f72ecdd) です。Chrome 描画、Kitty 画像、アドレスバー編集は共通の基盤であり、上流の最新版にも長い URL の編集修正があります。これらをフォーク独自の機能とは扱いません。
 
-casty は w3m や lynx のようなテキストブラウザではありません。ヘッドレス Chrome を起動し、CDP でレンダリング結果を取得して、Kitty graphics protocol でターミナルに描画します。Chrome のリモートデスクトップがターミナルに収まった感じです。
+Casty は描画済みのフレームを CDP で受け取り、Kitty graphics protocol で表示し、入力を返します。Chrome も引き続き使用できます。Buninu Browser や Land の選択で変わるのは描画エンジンと利用可能な機能であり、端末への転送方式ではありません。
 
 ![Ghostty 上で動作する casty](docs/screenshot-ghostty.png)
 
@@ -34,19 +36,19 @@ casty は w3m や lynx のようなテキストブラウザではありません
     ▲ フレーム          │ 入力
     │                   ▼
 ┌──────────────────────────────────┐
-│ Chrome（ヘッドレス）             │
-│ 完全な Web レンダリング          │
-│ JS, CSS, Canvas, WebGL           │
+│ Chrome / Buninu Browser / Land   │
+│ エンジン／コンポジター描画        │
+│ Web / Wayland アプリ             │
 └──────────────────────────────────┘
 ```
 
-レンダリングはすべて Chrome がやります。casty はフレームをターミナルに流して入力を返すだけのブリッジ。Playwright も puppeteer も使わず、WebSocket で生 CDP を叩いています。
+描画は選択したエンジンが担当します。Casty は Playwright や Puppeteer を使わず、CDP WebSocket と端末の画像・入力を橋渡しします。
 
-本物の Chrome なので JavaScript, CSS, Canvas, WebGL 全部動きます。ステルスパッチで Google ログインも通ります。マウスのクリック、スクロール、ドラッグ、キーボード入力 — 普通のブラウザと同じ操作ができます。
+Chrome 使用時の Web 描画、Canvas、WebGL は Chrome が提供します。Buninu Browser には独自の互換性の制限があり、Land は Wayland クライアントを表示します。Chrome 向けのステルス、カメラ、マイクの統合が他のエンジンでも使えるとは限りません。
 
 ## どういうときに使う？
 
-SSH でヘッドレスサーバーに入っていて Web ページを確認したいとき、普通は `curl` か `lynx` か X11 転送しかない。casty ならターミナルを離れずに本物のブラウザが使えます。X11 も VNC も Wayland もいらない。Kitty 対応ターミナルさえあれば OK。
+SSH でヘッドレスサーバーに入っていて Web ページを確認したいとき、普通は `curl` か `lynx` か X11 転送しかない。casty ならターミナルを離れずに本物のブラウザが使えます。Chrome の経路では X11、VNC、Wayland デスクトップは不要で、Kitty 対応端末だけで使えます。Land を選択すると、その端末が Wayland クライアントの表示先になります。
 
 ### Google Meet でカメラ＆マイク（実験的）
 
@@ -151,6 +153,10 @@ CASTY_ZOOM=1.5 bun casty.js   # 自動ズームに加えて 1.5 倍に拡大
 | Ctrl+Q | 終了 |
 
 `~/.casty/keys.json` でカスタマイズ可能。
+
+### マウススクロール
+
+垂直・水平・斜めのホイール入力を各軸に転送します。端末のホイール報告 1 回につき 100 CDP ピクセルで、Shift・Alt・Ctrl を保持します。外側の端末が Shift＋ホイールを水平に変換する場合、Casty は軸を再交換しません。ここで使用する端末マウスプロトコルは Super を符号化できません。対象アプリケーションにスクロール可能な内容が必要で、報告されたポインター位置に入力を送ります。
 
 ### Kitty キーボード
 
