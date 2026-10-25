@@ -42,3 +42,16 @@ test('Tab modifier reports preserve all eight Ctrl/Alt/Shift combinations', () =
   expect(parseInput('\x1b[1;6Z')).toMatchObject({key:'Tab',modifiers:10});
   expect(parseInput('\x1b[9u')).toMatchObject({key:'Tab',modifiers:0});
 });
+
+test('SGR wheel directions preserve both axes and all modifier combinations', async () => {
+  const {mouseWheelEvent} = await import('../lib/input.js');
+  const deltas = [[0,-100],[0,100],[-100,0],[100,0]];
+  for(let direction=0;direction<4;direction++)for(let bits=0;bits<8;bits++){
+    const code=64+direction+(bits<<2);
+    expect(mouseWheelEvent(code,12,34)).toEqual({type:'mouseWheel',x:12,y:34,
+      deltaX:deltas[direction][0],deltaY:deltas[direction][1],
+      modifiers:(bits&1?8:0)|(bits&2?1:0)|(bits&4?2:0)});
+    expect(mouseWheelEvent(code,12,34,true)).toBeNull();
+  }
+  for(const code of [0,32,35,128,192])expect(mouseWheelEvent(code,1,2)).toBeNull();
+});
