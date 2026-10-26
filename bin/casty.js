@@ -12,6 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { splitBrowserArgs } from '../lib/chrome.js';
+import { createResizeHandler } from '../lib/resize.js';
 import { ensureChrome } from '../lib/install.js';
 
 const packageDir = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -400,8 +401,6 @@ async function main() {
   // SIGWINCH: Follow resize + font size changes
   // Debounced (150ms) + guarded with pending flag to catch late resizes
   let resizeTimer = null;
-  let resizing = false;
-  let pendingResize = false;
   const onResize = () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(handleResize, 150);
@@ -419,10 +418,9 @@ async function main() {
     } catch {}
   }
 
-  async function handleResize() {
-    if (resizing) { pendingResize = true; return; }
-    resizing = true;
-    try {
+  const handleResize = createResizeHandler({
+    async update() {
+      if (shuttingDown) return;
       // Stop old screencast FIRST to prevent stale frames
       await stopScreencast(client, screencastCleanup);
 
@@ -441,7 +439,7 @@ async function main() {
 
       await client.send('Emulation.setDeviceMetricsOverride', {
         width: cw, height: ch, deviceScaleFactor: t.zoom, mobile: false,
-      });
+      }, 30_000); // Loading pages can occupy the renderer longer than the default 10s.
 
       // Wait for Chrome to finish re-rendering by watching for a screencast frame
       await new Promise(resolve => {
@@ -467,7 +465,13 @@ async function main() {
       await directCapture();
       urlBar.render();
 
-      // Restart screencast for ongoing change detection
+    },
+    async resume() {
+      if (shuttingDown) return;
+      // Also resume after a metrics timeout: CDP timeout does not cancel the
+      // remote resize, and the browser may finish it after we stop waiting.
+      const cw = Math.round(captureGeometry.width / captureGeometry.zoom);
+      const ch = Math.round(captureGeometry.height / captureGeometry.zoom);
       ({ forceCapture, cleanup: screencastCleanup } = await startScreencast(client, {
         width: cw,
         height: ch,
@@ -475,15 +479,9 @@ async function main() {
         capturePolicy,
         onFrame,
       }));
-    } catch (err) {
-      console.error('casty: resize error:', err.message);
-    }
-    resizing = false;
-    if (pendingResize) {
-      pendingResize = false;
-      handleResize();
-    }
-  }
+    },
+    onError(err) { console.error('casty: resize error:', err.message); },
+  });
 }
 
 try {
