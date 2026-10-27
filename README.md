@@ -133,6 +133,8 @@ casty --attach 9222 --no-shortcuts
 
 The image area reserves the rightmost terminal column; the address bar remains full width. Normal mode sizes the viewport to this area without shortening its height. Attach keeps the remote aspect ratio, so additional space may remain.
 
+If the attached target disconnects, the last frame stays visible and a red **@** marks the disconnected state. Click it and enter `q` (or use the normal quit shortcut) to exit; captures and remote input stop until then.
+
 Attach captures a fallback frame after 1 second without a completed capture, including in readonly mode. Normal updates reset this timer; slow captures never accumulate periodic requests.
 
 ```bash

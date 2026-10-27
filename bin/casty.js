@@ -206,13 +206,18 @@ function calcZoom(cellWidth) {
   return cellWidth / REF_CELL_WIDTH * zoomFactor;
 }
 
+const terminalQueries = new Set();
+let terminalClosing = false;
+
 // Query terminal pixel size via CSI 14t
 // keepAlive: true when called during operation (SIGWINCH) — don't touch stdin state
 function queryTermPixelSize({ keepAlive = false } = {}) {
-  if (!process.stdin.isTTY) return Promise.resolve(null);
+  if (terminalClosing || !process.stdin.isTTY) return Promise.resolve(null);
 
   let resolve;
   const promise = new Promise(r => { resolve = r; });
+  terminalQueries.add(promise);
+  promise.finally(() => terminalQueries.delete(promise));
   const wasRaw = process.stdin.isRaw;
   const timeout = setTimeout(() => {
     process.stdin.removeListener('data', onData);
@@ -313,6 +318,7 @@ async function main() {
     set: (factor) => { if (!captureReady) return; zoomFactor = factor; return handleResize(); },
   };
   let shuttingDown = false;
+  let disconnected = false;
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   process.on('SIGHUP', shutdown);
@@ -336,6 +342,7 @@ async function main() {
     const capture = capturePolicy.capture.bind(capturePolicy);
     capturePolicy.capture = async (...args) => {
       const viewport = await readAttachViewport(client);
+      if (shuttingDown || disconnected) throw Error('Connection closed');
       if (viewport.width !== attachedViewport.width || viewport.height !== attachedViewport.height) {
         attachedViewport = viewport;
         captureGeometry = {...viewport,zoom:1};
@@ -352,7 +359,7 @@ async function main() {
   // Frame callback for screencast / captureScreenshot
   // sendFrame includes cursor positioning (single write)
   function onFrame(data) {
-    if (shuttingDown) return;
+    if (shuttingDown || disconnected) return;
     try { sendFrame(data); }
     catch(error) {
       if(!isRaw(capturePolicy?.format))throw error;
@@ -404,8 +411,19 @@ async function main() {
   async function shutdown() {
     if (shuttingDown) return;
     shuttingDown = true;
+    terminalClosing = true;
+    clearTimeout(resizeTimer);
+    process.removeListener('SIGWINCH', onResize);
+    process.stdout.removeListener('resize', onResize);
+    client.removeListener('Page.frameResized', onResize);
+    for (const timer of delayedTimers) clearTimeout(timer);
     console.error('casty: shutting down...');
+    // Keep stdin raw and consumed while outstanding terminal queries finish.
+    // Otherwise a late CSI 14t reply becomes input to the parent shell.
+    const drainInput = () => {};
+    process.stdin.on('data', drainInput);
     stopInputHandling();
+    disableMouse();
     // A stalled browser must not hold up quitting; it is killed below anyway.
     await Promise.race([
       (async () => {
@@ -417,9 +435,13 @@ async function main() {
     client.close();
     chromeProcess?.kill();
     await media?.cleanup();
-    disableMouse();
+    await Promise.allSettled([...terminalQueries]);
+    // Allow fragmented late replies already in transit to finish before
+    // returning the PTY to the shell. No new queries or modes may start now.
+    await new Promise(resolve => setTimeout(resolve, 150));
+    process.stdin.removeListener('data', drainInput);
     showCursor();
-    try { process.stdin.setRawMode(false); } catch {}
+    try { process.stdin.setRawMode(false); process.stdin.pause(); } catch {}
     clearScreen();                 // Clear after everything is stopped — no re-render risk
     capturePolicy?.close();
     cleanupTmp();
@@ -434,6 +456,8 @@ async function main() {
   // Debounced (150ms) + guarded with pending flag to catch late resizes
   let resizeTimer = null;
   const onResize = () => {
+    if (shuttingDown) return;
+    if (disconnected) { urlBar.render();return; }
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(handleResize, 150);
   };
@@ -453,15 +477,17 @@ async function main() {
 
   const handleResize = createResizeHandler({
     async update() {
-      if (shuttingDown) return;
+      if (shuttingDown || disconnected) return;
       // Stop old screencast FIRST to prevent stale frames
       await stopScreencast(client, screencastCleanup);
 
       const t = await getTermInfo({ keepAlive: true });
+      if (shuttingDown || disconnected) return;
       const vh = t.height - t.cellHeight;
       if (attachEndpoint) {
         attachedTerm = t;
         attachedViewport = await readAttachViewport(client);
+        if (shuttingDown || disconnected) return;
         attachedDisplay = attachDisplay(t,attachedViewport);
         captureGeometry={...attachedViewport,zoom:1};
         setDisplaySize(attachedDisplay.cols,attachedDisplay.rows);
@@ -509,7 +535,7 @@ async function main() {
 
     },
     async resume() {
-      if (shuttingDown) return;
+      if (shuttingDown || disconnected) return;
       // Also resume after a metrics timeout: CDP timeout does not cancel the
       // remote resize, and the browser may finish it after we stop waiting.
       const cw = Math.round(captureGeometry.width / captureGeometry.zoom);
@@ -523,8 +549,22 @@ async function main() {
         onFrame,
       }));
     },
-    onError(err) { console.error('casty: resize error:', err.message); },
+    onError(err) { if (!shuttingDown) console.error('casty: resize error:', err.message); },
   });
+  function onRemoteClose() {
+    if (shuttingDown || disconnected) return;
+    if (!attachEndpoint) { void shutdown();return; }
+    disconnected = true;
+    terminalClosing = true;
+    clearTimeout(resizeTimer);
+    for (const timer of delayedTimers) clearTimeout(timer);
+    screencastCleanup?.();
+    capturePolicy?.close();
+    forceCapture = () => {};
+    urlBar.markDisconnected();
+  }
+  client.once('close', onRemoteClose);
+  if (client.diagnostics().state === 'closed') onRemoteClose();
 }
 
 try {
