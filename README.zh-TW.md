@@ -116,6 +116,25 @@ set -g allow-passthrough on
 
 ## 使用方式
 
+### 連接既有瀏覽器或桌面
+
+```sh
+casty --attach 9222
+casty --attach http://127.0.0.1:9222
+casty --attach ws://127.0.0.1:9222/devtools/page/TARGET_ID
+casty --attach 9222 --readonly
+# Land：頁面快捷鍵向下傳遞，點 @ 進入本地命令列
+casty --attach 9222 --no-shortcuts
+```
+
+`--attach` 預設可操作。純 port 代表 localhost；HTTP(S) 查詢既有頁面，page WebSocket URL 則直接指定頁面（也接受 WSS）。有多個頁面時會列出各自的 WebSocket URL 並退出，讓你明確選擇。不啟動／下載瀏覽器、不建立頁面、不自動導航、不修改 viewport／DPR／UA，也不注入啟動腳本。既有畫面會縮放到終端機格子內；終端機 resize 只改本地顯示與滑鼠座標換算。attach 模式不提供 zoom 命令；退出只斷線，不關閉瀏覽器或頁面。
+
+`--readonly` 可搭配 attach 或一般啟動，初始只觀看。用 **Ctrl-E → `readonly on`／`readonly off`** 切換；單打 `readonly` 顯示狀態。搭配 `--no-shortcuts` 時可點 **@** 輸入命令。唯讀會阻擋頁面按鍵、滑鼠、滾輪、貼上、導航、重新載入及修改頁面的命令；本地命令列／網址列編輯、複製網址與退出仍可用。這是前端防誤操作，不是伺服器權限隔離。attach 仍會啟用 CDP 頁面事件並啟停畫面串流，可能影響同一 target 的另一個觀看者。
+
+圖片區固定保留終端最右側一欄，網址列仍使用全寬。一般模式依此區域設定 viewport，不縮短可用高度；attach 保持遠端比例，因此仍可能有額外留白。
+
+attach 在沒有完成截圖 1 秒後會補拍一張，唯讀模式也適用。正常更新會重設計時器；截圖慢時不會堆積定期請求。
+
 ```bash
 cd casty/bin
 bun casty.js https://google.com

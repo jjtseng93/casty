@@ -116,6 +116,25 @@ set -g allow-passthrough on
 
 ## Usage
 
+### Attach to an existing browser or desktop
+
+```sh
+casty --attach 9222
+casty --attach http://127.0.0.1:9222
+casty --attach ws://127.0.0.1:9222/devtools/page/TARGET_ID
+casty --attach 9222 --readonly
+# Land: forward page shortcuts, with @ as the local command entry
+casty --attach 9222 --no-shortcuts
+```
+
+`--attach` is writable by default. A port means localhost; HTTP(S) discovers existing pages, while a page WebSocket URL selects one directly (WSS is also accepted). If there are multiple pages, Casty lists their WebSocket URLs and exits so you can choose explicitly. It never starts/downloads a browser, creates a page, performs initial navigation, changes viewport/DPR/UA, or installs startup page scripts. The existing viewport is fitted into terminal cells; terminal resize only changes local display and pointer mapping. The zoom command is unavailable in attach mode. Exit disconnects without closing the browser or page.
+
+`--readonly` starts in viewing-only mode, with or without attach. Use **Ctrl-E → `readonly on` / `readonly off`**; `readonly` reports the current state. With `--no-shortcuts`, click **@** to enter the command. Page keys, mouse, wheel, paste, navigation, reload and page-modifying commands are blocked; local command/address editing, copying the URL and quitting remain available. This is a client-side guard, not server authorization. Attach still enables CDP page events and starts/stops screenshot streaming, which may interfere with another viewer of the same target.
+
+The image area reserves the rightmost terminal column; the address bar remains full width. Normal mode sizes the viewport to this area without shortening its height. Attach keeps the remote aspect ratio, so additional space may remain.
+
+Attach captures a fallback frame after 1 second without a completed capture, including in readonly mode. Normal updates reset this timer; slow captures never accumulate periodic requests.
+
 ```bash
 cd casty/bin
 bun casty.js https://google.com

@@ -27,12 +27,21 @@ const readmeOptions = {
   '--readme-wui-ja': ['--wui', 'README.ja.md'],
 };
 // casty's own options; any other leading option goes to the browser.
-const ownOptions = new Set(['--no-shortcuts', '--help', '-h', '--version', '-v', '-V', ...Object.keys(readmeOptions)]);
+const ownOptions = new Set(['--no-shortcuts', '--readonly', '--attach', '--help', '-h', '--version', '-v', '-V', ...Object.keys(readmeOptions)]);
 
 // Arguments after "--" are passed to the browser.
 const { args: frontendArgs, browserArgs } = splitBrowserArgs(process.argv.slice(2), ownOptions);
 const noShortcuts = frontendArgs.includes('--no-shortcuts');
-const cliArgs = frontendArgs.filter(arg => arg !== '--no-shortcuts');
+const readonly = frontendArgs.includes('--readonly');
+const attachIndex = frontendArgs.indexOf('--attach');
+const attachEndpoint = attachIndex < 0 ? null : frontendArgs[attachIndex+1];
+if (attachIndex >= 0 && (!attachEndpoint || attachEndpoint.startsWith('-'))) {
+  console.error('casty: --attach requires a port or CDP endpoint');process.exit(1);
+}
+const cliArgs = frontendArgs.filter((arg,i) => !['--no-shortcuts','--readonly'].includes(arg) && i!==attachIndex && (attachIndex<0 || i!==attachIndex+1));
+if (attachEndpoint && (browserArgs.length || cliArgs.some(arg=>!['--help','-h'].includes(arg)))) {
+  console.error('casty: --attach does not accept a navigation URL or browser flags');process.exit(1);
+}
 if (Object.hasOwn(readmeOptions, cliArgs[0])) {
   const [mode, readme] = readmeOptions[cliArgs[0]];
   const child = spawnSync('bun',
@@ -63,6 +72,10 @@ Options:
                    Open the English, Chinese, or Japanese README in a terminal UI
   --readme-wui[-zh|-ja]
                    Open the English, Chinese, or Japanese README in a web UI
+  --attach <endpoint>
+                   Existing CDP: port, HTTP(S), or page WebSocket URL
+                   Preserve viewport and page; disconnect only on exit
+  --readonly      Start viewing only; cmd> readonly on|off toggles
   --no-shortcuts   Forward all page keys; click @ to open cmd> (q quits)
   -- <flags>       Pass the remaining arguments to the browser
                    (e.g. casty example.com -- --lang=ja)
@@ -158,8 +171,9 @@ async function flushOutput() {
 }
 
 // Ensure a browser is installed (downloads Chrome Headless Shell on first run).
-await ensureChrome();
+if (!attachEndpoint) await ensureChrome();
 
+import { attachPage, readAttachViewport, attachDisplay } from '../lib/attach.js';
 import {transientRawCaptureError,createCapturePolicy,isRaw,viewportClip} from '../lib/capture-format.js';
 import { startBrowser, setupPage, startScreencast, stopScreencast, screencastRegion } from '../lib/browser.js';
 import { queryRawPreference, sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
@@ -257,9 +271,9 @@ async function main() {
   // Phase 1: Get terminal info, then launch Chrome at the matching device
   // scale factor; media starts in parallel.
   // getTermInfo() must complete fully (prevent CSI 14t response leak)
-  const mediaP = config.media ? startMedia(config) : null;
+  const mediaP = !attachEndpoint && config.media ? startMedia(config) : null;
   const term = await getTermInfo();
-  const browser = await startBrowser(term.zoom, browserArgs);
+  const browser = attachEndpoint ? null : await startBrowser(term.zoom, browserArgs);
   const media = mediaP ? await mediaP : null;
 
   // Reserve line 1 for URL bar, use the rest for browser display
@@ -268,8 +282,14 @@ async function main() {
   setDisplaySize(term.cols, term.rows - 1);
 
   // Phase 2: CDP connection + page setup
-  const { client, cssWidth, cssHeight } = await setupPage(browser, { ...term, height: viewHeight, mediaPort: media?.port || 0, mediaToken: media?.token || '' });
-  const chromeProcess = browser.proc;
+  const { client, cssWidth, cssHeight } = attachEndpoint ? await attachPage(attachEndpoint) : await setupPage(browser, { ...term, height: viewHeight, mediaPort: media?.port || 0, mediaToken: media?.token || '' });
+  const chromeProcess = browser?.proc;
+  // Initial navigation belongs to a browser we launched, even in viewing-only mode.
+  const navigateInitialPage = client.send.bind(client, 'Page.navigate', { url });
+  let attachedTerm = term;
+  let attachedViewport = {width:cssWidth,height:cssHeight};
+  let attachedDisplay = attachEndpoint ? attachDisplay(term, attachedViewport) : null;
+  if (attachedDisplay) setDisplaySize(attachedDisplay.cols, attachedDisplay.rows);
 
   // Log WebSocket errors to stderr (prevent unhandled crash)
   client.on('error', (err) => { console.error('casty: CDP error:', err.message); });
@@ -287,7 +307,7 @@ async function main() {
   let forceCapture = () => {}, screencastCleanup, capturePolicy;
   let urlBar = null;
   let captureReady = false;
-  const zoomControl = {
+  const zoomControl = attachEndpoint ? null : {
     get: () => zoomFactor,
     // Re-run the resize path: it recomputes the zoom and the viewport
     set: (factor) => { if (!captureReady) return; zoomFactor = factor; return handleResize(); },
@@ -296,19 +316,36 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   process.on('SIGHUP', shutdown);
-  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown }, { noShortcuts, getCaptureFormat: () => capturePolicy?.format });
+  urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown }, { noShortcuts, readonly, mapPointer: attachEndpoint ? (col,row)=>attachedDisplay.map(col,row) : null, getCaptureFormat: () => capturePolicy?.format });
   enableMouse();
   await initializeTransport(() => { forceCapture(); });
   urlBar.render();
 
   // Negotiate terminal file/preference and CDP support before selecting raw.
   const transport = detectTransport();
-  let captureGeometry={width:term.width,height:viewHeight,zoom:term.zoom};
+  let captureGeometry=attachEndpoint ? {...attachedViewport,zoom:1} : {width:term.width,height:viewHeight,zoom:term.zoom};
   capturePolicy = await createCapturePolicy(client, {
     configured: config.format || 'auto', getTransport: detectTransport,
     queryPreference: queryRawPreference,
     getClip: () => viewportClip(client,captureGeometry).catch(()=>undefined),
   });
+
+  if (attachEndpoint) {
+    // Another controller may resize the target without emitting frameResized.
+    // Refresh the fit before every capture, including idle fallback captures.
+    const capture = capturePolicy.capture.bind(capturePolicy);
+    capturePolicy.capture = async (...args) => {
+      const viewport = await readAttachViewport(client);
+      if (viewport.width !== attachedViewport.width || viewport.height !== attachedViewport.height) {
+        attachedViewport = viewport;
+        captureGeometry = {...viewport,zoom:1};
+        attachedDisplay = attachDisplay(attachedTerm,viewport);
+        setDisplaySize(attachedDisplay.cols,attachedDisplay.rows);
+        clearScreen();resetFrameCache();urlBar.render();
+      }
+      return capture(...args);
+    };
+  }
 
   console.error(`casty: ${term.width}x${term.height} cell=${term.cellWidth.toFixed(0)}x${term.cellHeight.toFixed(0)} zoom=${term.zoom.toFixed(2)} transport=${transport} format=${capturePolicy.format}${capturePolicy.format === 'jpeg' ? ' (adaptive)' : ''}`);
 
@@ -334,6 +371,7 @@ async function main() {
     height: cssHeight,
     format: capturePolicy.format,
     capturePolicy,
+    idleRefreshInterval: attachEndpoint ? 1000 : 0,
     onFrame,
   }));
 
@@ -361,7 +399,7 @@ async function main() {
   // Install loading, capture, and input listeners before navigating. A local
   // server can otherwise finish before they exist, leaving the spinner stuck
   // and the displayed frame out of sync with subsequent pointer input.
-  client.send('Page.navigate', { url }).catch(e => console.error('casty: navigate error:', e.message));
+  if (!attachEndpoint) navigateInitialPage().catch(e => console.error('casty: navigate error:', e.message));
 
   async function shutdown() {
     if (shuttingDown) return;
@@ -372,12 +410,12 @@ async function main() {
     await Promise.race([
       (async () => {
         await stopScreencast(client, screencastCleanup);  // Stop screencast (disables pending captures)
-        await client.send('Browser.close').catch(() => {});
+        if (!attachEndpoint) await client.send('Browser.close').catch(() => {});
       })().catch(() => {}),
       new Promise(resolve => setTimeout(resolve, 1000)),
     ]);
     client.close();
-    chromeProcess.kill();
+    chromeProcess?.kill();
     await media?.cleanup();
     disableMouse();
     showCursor();
@@ -405,6 +443,7 @@ async function main() {
   process.stdout.on('resize', onResize);
   // Direct screenshot — bypasses screencast's capturing flag
   captureReady = true;
+  if (attachEndpoint) client.on('Page.frameResized', onResize);
   async function directCapture() {
     try {
       const { data } = await capturePolicy.capture({quality:85});
@@ -420,6 +459,15 @@ async function main() {
 
       const t = await getTermInfo({ keepAlive: true });
       const vh = t.height - t.cellHeight;
+      if (attachEndpoint) {
+        attachedTerm = t;
+        attachedViewport = await readAttachViewport(client);
+        attachedDisplay = attachDisplay(t,attachedViewport);
+        captureGeometry={...attachedViewport,zoom:1};
+        setDisplaySize(attachedDisplay.cols,attachedDisplay.rows);
+        urlBar.updateCellSize(t.cellWidth,t.cellHeight,1,{width:t.mouseCellWidth,height:t.mouseCellHeight,known:t.pixelGeometryKnown});
+        clearScreen();resetFrameCache();await directCapture();urlBar.render();return;
+      }
       captureGeometry={width:t.width,height:vh,zoom:t.zoom};
       const cw = Math.round(t.width / t.zoom);
       const ch = Math.round(vh / t.zoom);
@@ -471,6 +519,7 @@ async function main() {
         height: ch,
         format: capturePolicy.format,
         capturePolicy,
+        idleRefreshInterval: attachEndpoint ? 1000 : 0,
         onFrame,
       }));
     },

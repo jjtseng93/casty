@@ -116,6 +116,25 @@ set -g allow-passthrough on
 
 ## 使い方
 
+### 起動済みのブラウザーやデスクトップに接続
+
+```sh
+casty --attach 9222
+casty --attach http://127.0.0.1:9222
+casty --attach ws://127.0.0.1:9222/devtools/page/TARGET_ID
+casty --attach 9222 --readonly
+# Land：ページのキーを転送し、@ からローカルコマンドを入力
+casty --attach 9222 --no-shortcuts
+```
+
+`--attach` は既定で操作可能です。ポート番号は localhost、HTTP(S) は既存ページの検索、page WebSocket URL はページの直接指定です（WSS も対応）。複数ページがある場合は各 WebSocket URL を表示して終了するので、明示的に選択してください。ブラウザーの起動／ダウンロード、ページの作成、初期ナビゲーション、viewport／DPR／UA の変更、起動スクリプトの注入は行いません。既存画面を端末のセル内に収め、端末の resize はローカル表示とマウス座標変換だけを変更します。attach モードでは zoom コマンドを使えません。終了してもブラウザーやページは閉じません。
+
+`--readonly` は attach と通常起動の両方で使えます。**Ctrl-E → `readonly on`／`readonly off`** で切り替え、`readonly` で状態を確認します。`--no-shortcuts` 使用時は **@** から入力できます。ページへのキー、マウス、ホイール、貼り付け、ナビゲーション、再読み込み、ページ変更コマンドを遮断します。ローカルのコマンド／アドレス編集、URL コピー、終了は利用できます。これはクライアント側の誤操作防止で、サーバーの権限制御ではありません。attach は CDP ページイベントと画面配信の開始／停止を使うため、同じ target の別の閲覧者に影響する場合があります。
+
+画像領域は端末の右端 1 列を空け、アドレスバーは全幅を使います。通常モードは利用可能な高さを減らさず、この領域に viewport を合わせます。attach は接続先の縦横比を保つため、追加の余白が残る場合があります。
+
+attach はキャプチャ完了から 1 秒間更新がない場合、readonly でも補完キャプチャを行います。通常の更新でタイマーをリセットし、遅いキャプチャ中に定期リクエストを蓄積しません。
+
 ```bash
 cd casty/bin
 bun casty.js https://google.com
