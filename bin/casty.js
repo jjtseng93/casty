@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { pixelGeometry, imageGeometry } from '../lib/terminal-geometry.js';
 // casty - TTY web browser using raw CDP and Kitty graphics protocol
 
 // Handle stdout/stderr write errors (SSH disconnect, terminal close, etc.)
@@ -233,30 +234,23 @@ function queryTermPixelSize({ keepAlive = false } = {}) {
 // Get terminal info
 // keepAlive: true during operation (SIGWINCH) to avoid killing stdin
 async function getTermInfo({ keepAlive = false } = {}) {
+  const pixelSize = await queryTermPixelSize({ keepAlive });
   const cols = process.stdout.columns || 80;
   const rows = process.stdout.rows || 24;
-
-  const pixelSize = await queryTermPixelSize({ keepAlive });
-  if (pixelSize) {
-    // Align to cell boundaries: floor cell size, then multiply back
-    // This ensures image pixels == display pixels (no GPU interpolation blur)
-    const cellWidth = Math.floor(pixelSize.width / cols);
-    const cellHeight = Math.floor(pixelSize.height / rows);
-    const width = cellWidth * cols;
-    const height = cellHeight * rows;
-    const zoom = calcZoom(cellWidth);
-    return { cols, rows, width, height, cellWidth, cellHeight, zoom, mouseCellWidth: pixelSize.width / cols, mouseCellHeight: pixelSize.height / rows, pixelGeometryKnown: true };
+  const geometry = pixelGeometry(pixelSize, cols, rows);
+  if (geometry) {
+    return imageGeometry({...geometry, zoom:calcZoom(geometry.cellWidth)});
   }
 
   const cellWidth = parseInt(process.env.CASTY_CELL_WIDTH) || 10;
   const cellHeight = parseInt(process.env.CASTY_CELL_HEIGHT) || 20;
   const zoom = calcZoom(cellWidth);
-  return {
+  return imageGeometry({
     cols, rows,
     width: cols * cellWidth,
     height: rows * cellHeight,
     cellWidth, cellHeight, zoom, pixelGeometryKnown: false,
-  };
+  });
 }
 
 async function main() {
