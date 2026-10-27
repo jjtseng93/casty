@@ -287,7 +287,7 @@ Casty 啟動時會查詢模式 1016；收到支援回覆才啟用像素座標，
 
 raw 協商成功後，導航中斷的截圖或已被移除的舊畫面會略過，不會因此永久停用 raw；不支援的格式或無效 raw 回應仍退回原本編碼。
 
-變動偵測 screencast 同時帶標準 `maxWidth/maxHeight` 和私有 `clip` 擴充，使用相同寬高及 `scale: 1`。Browser／Land 保持原像素密度直接裁切、不縮放；Chromium 忽略 `clip` 並使用原本 max 限制。通知圖片不會顯示，導航時亦同。目前 raw 模式的通知仍有圖片，尚未改成純通知。
+變動偵測 screencast 同時帶標準 `maxWidth/maxHeight` 和私有 `clip` 擴充，使用相同寬高及 `scale: 1`。Browser／Land 保持原像素密度直接裁切、不縮放；Chromium 忽略 `clip` 並使用原本 max 限制。通知圖片不會顯示，導航時亦同。raw 串流另帶私有選項 `clip: {x: 0, y: 0, width: 0, height: 0, scale: 1}`。Browser／Land 以固定 1×1 PNG 佔位資料回覆更新，不讀取或渲染場景；Casty 忽略佔位資料，再擷取真正的 raw 畫面。其他引擎可忽略這個選項；退回編碼格式時便不再要求它。
 
 ### 截圖間隔
 

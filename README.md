@@ -294,7 +294,7 @@ Negotiated raw captures use standard CDP `clip` with `scale: 1`, retaining fract
 
 After raw negotiation, a capture interrupted by navigation or a removed stale frame is skipped without retiring raw. Unsupported formats and invalid raw responses still fall back to the original codec.
 
-Change-detection screencasts include a private `clip` extension alongside standard `maxWidth/maxHeight`, using the same width/height and `scale: 1`. Browser/Land crop at native pixel density without resizing; Chromium ignores `clip` and uses the standard max limits. These notification images are never displayed, including during navigation. This does not yet remove image payloads from raw-mode notifications.
+Change-detection screencasts include a private `clip` extension alongside standard `maxWidth/maxHeight`, using the same width/height and `scale: 1`. Browser/Land crop at native pixel density without resizing; Chromium ignores `clip` and uses the standard max limits. These notification images are never displayed, including during navigation. Raw streams also request the private `clip: {x: 0, y: 0, width: 0, height: 0, scale: 1}` option. Browser/Land answer those updates with a fixed 1×1 PNG placeholder without reading or rendering the scene; Casty ignores that placeholder and captures the real raw frame. Other engines may ignore the option. Falling back to an encoded format stops requesting it.
 
 ### Capture interval
 

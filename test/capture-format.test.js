@@ -112,3 +112,20 @@ test('navigation invalidation drops one raw capture without permanently changing
   expect(formats.every(f=>f==='bgra')).toBe(true);policy.close();
  }finally{f.close();}
 });
+
+test('only raw streams request notification-only updates and fallback clears the option', async () => {
+ const {EventEmitter}=await import('node:events');
+ const client=new EventEmitter(),calls=[],frames=[];
+ client.send=async(method,params)=>{calls.push({method,params});return {};};
+ const policy={format:'bgra',async capture(){return {data:'full-'+this.format};}};
+ const stream=await startScreencast(client,{width:800,height:600,format:policy.format,capturePolicy:policy,onFrame:frame=>frames.push(frame)});
+ try{
+  await Bun.sleep(10);
+  expect(calls.find(c=>c.method==='Page.startScreencast').params.clip).toEqual({x:0,y:0,width:0,height:0,scale:1});
+  client.emit('Page.screencastFrame',{sessionId:1,data:'notification-placeholder'});
+  await Bun.sleep(30);
+  policy.format='png';await stream.forceCapture();
+  expect(calls.filter(c=>c.method==='Page.startScreencast').at(-1).params.clip).toEqual({x:0,y:0,width:200,height:150,scale:1});
+  expect(frames).toContain('full-png');expect(frames).not.toContain('notification-placeholder');
+ }finally{stream.cleanup();}
+});
