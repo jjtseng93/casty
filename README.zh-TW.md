@@ -116,6 +116,16 @@ set -g allow-passthrough on
 
 ## 使用方式
 
+### 原生 Windows 視窗
+
+Win32 與終端版共用命令及輸入處理器，包含 `keys.json`、`readonly`、
+`--no-shortcuts` 與 `CASTY_ZOOM`。使用 `casty --win32 --attach PORT` 可檢視
+既有的相容引擎，不會導航或變更其 viewport；關閉視窗只會中斷連線。
+attach 模式不提供縮放。剪貼簿操作使用 Windows 剪貼簿；關閉視窗後會顯示
+與終端版相同的操作說明及版本。
+
+在 Windows 上執行 `casty --win32 [URL] [-- BROWSER_FLAGS...]`，即可將 CDP 畫面顯示於原生 Win32/GDI 視窗。預設仍是終端機前端。此後端需要 Bun，以及支援 Buninu raw BGRA 檔案擷取的引擎，例如 Buninu Browser；請以 `CASTY_BROWSER` 指定。
+
 ### 連接既有瀏覽器或桌面
 
 ```sh
@@ -199,9 +209,16 @@ Casty 會自動偵測 [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/
 
 ### 網址列
 
+Win32 網址列支援輸入法文字。圖示／載入動畫與 ` > `／`cmd> ` prompt 位於獨立、不可編輯的 32px 區域（約四個字元寬）。**Ctrl+A** 只全選文字。Tab 切換 prompt，Up/Down 使用各模式的歷史，點擊 prompt 切換模式；雙擊左／中／右三區分別選取下一筆／上一筆歷史或送出。點擊網頁時會請求與終端版相同的紅點標記。
+
 按 **Alt+L** 開啟。輸入網址或搜尋關鍵字。`/b 關鍵字` 可搜尋書籤。
 
 ### 指令列
+
+網頁觸發的下載完成後，若引擎提供實際儲存路徑，完成訊息會一併顯示。
+Casty 直接使用引擎回傳的路徑；未提供時不會自行推算目的地。兩種前端皆適用。
+
+Win32 接受相同命令名稱。`kitty` 會說明此後端不使用 Kitty 傳輸；`pixelmouse` 會顯示使用原生像素座標輸入。
 
 **Ctrl+E** 會把網址列變成 `cmd>` 提示字元，Enter 執行，Esc 取消。
 
@@ -276,6 +293,8 @@ Casty 啟動時會查詢模式 1016；收到支援回覆才啟用像素座標，
 | `media` | 為 WebRTC 啟用攝影機/麥克風（實驗性，需要 `ffmpeg`） | `false` |
 
 ### 影像傳輸與截圖格式
+
+以下協商與回退規則適用於終端機前端。Win32 直接要求 raw BGRA，並自行刪除已消費或丟棄的畫面檔案，避免達到產生端的未消費檔案上限而停止擷取。
 
 按 `Ctrl-E`：`kitty` 顯示目前傳輸方式與協商後的截圖格式（例如 `Kitty: file · format=bgra`）；`kitty inline` 或 `kitty file` 切換本次執行的模式，不修改設定檔。自動模式先用 inline，查詢暫存圖片檔，只有收到對應的 OK 才使用 file；700 毫秒逾時則保留 inline。手動 file 不做探測，必須能共用路徑。`format: auto` 在檔案探測成功後選用自適應 JPEG，否則用 PNG。手動切換傳輸方式保留編碼格式（raw 切換成 inline 時則退回原設定）；inline JPEG 需要接收端的解碼器支援。
 

@@ -116,6 +116,17 @@ set -g allow-passthrough on
 
 ## Usage
 
+### Native Windows window
+
+Win32 shares the terminal frontend's command and input controller, including
+`keys.json`, `readonly`, `--no-shortcuts`, and `CASTY_ZOOM`. Use
+`casty --win32 --attach PORT` to view an existing compatible engine without
+navigating or changing its viewport; closing the window only disconnects.
+Zoom is unavailable in attach mode. Clipboard operations use the Windows
+clipboard. Closing the window prints the same controls help and version.
+
+On Windows, run `casty --win32 [URL] [-- BROWSER_FLAGS...]` to display CDP frames in a native Win32/GDI window. The terminal frontend remains the default. This backend requires Bun and an engine supporting Buninu raw BGRA file capture, such as Buninu Browser; select it with `CASTY_BROWSER`.
+
 ### Attach to an existing browser or desktop
 
 ```sh
@@ -206,9 +217,17 @@ reaching casty still cannot be forwarded.
 
 ### Address Bar
 
+On Win32, the address bar supports IME input. The icon/loading indicator and ` > ` / `cmd> ` prompt occupy a separate, non-editable 32px area (about four characters). **Ctrl+A** selects only the text. Tab switches prompts, Up/Down use separate histories, clicking the prompt switches modes, and double-clicking the left/middle/right thirds selects the next/previous history entry or submits. Page clicks request the same red marker as the terminal frontend.
+
 **Alt+L** to open. Type a URL or search query. `/b query` searches bookmarks.
 
 ### Command Line
+
+For downloads started by a web page, the completion message includes the saved
+file path when the engine supplies it. Casty uses that path directly; it does
+not guess the destination when the engine omits it. This applies to both frontends.
+
+Win32 accepts the same command names. `kitty` reports that Kitty transport is unused; `pixelmouse` reports native pixel input.
 
 **Ctrl+E** turns the address bar into a `cmd>` prompt. Enter runs the command; Esc cancels.
 
@@ -283,6 +302,8 @@ Create `~/.casty/bookmarks.json`:
 | `media` | Enable camera/mic for WebRTC (experimental, requires `ffmpeg`) | `false` |
 
 ### Image transport and capture format
+
+The following negotiation and fallback rules describe the terminal frontend. Win32 requests raw BGRA directly and deletes consumed or discarded frame files itself, preventing the producer’s outstanding-file limit from stalling capture.
 
 Press `Ctrl-E`: `kitty` shows the current transport and negotiated capture format (for example `Kitty: file · format=bgra`); `kitty inline` or `kitty file` switches it for this session without editing config. Auto transport starts inline, queries a temporary image file, and selects file only on a matching OK reply (700 ms timeout). Manual file mode bypasses the probe and requires shared paths. `format: auto` selects adaptive JPEG after a successful file probe, otherwise PNG. Manual transport switches preserve encoded formats (raw falls back when switching to inline); inline JPEG requires a decoder that supports it.
 

@@ -27,7 +27,7 @@ const readmeOptions = {
   '--readme-wui-ja': ['--wui', 'README.ja.md'],
 };
 // casty's own options; any other leading option goes to the browser.
-const ownOptions = new Set(['--no-shortcuts', '--readonly', '--attach', '--help', '-h', '--version', '-v', '-V', ...Object.keys(readmeOptions)]);
+const ownOptions = new Set(['--win32', '--no-shortcuts', '--readonly', '--attach', '--help', '-h', '--version', '-v', '-V', ...Object.keys(readmeOptions)]);
 
 // Arguments after "--" are passed to the browser.
 const { args: frontendArgs, browserArgs } = splitBrowserArgs(process.argv.slice(2), ownOptions);
@@ -38,7 +38,7 @@ const attachEndpoint = attachIndex < 0 ? null : frontendArgs[attachIndex+1];
 if (attachIndex >= 0 && (!attachEndpoint || attachEndpoint.startsWith('-'))) {
   console.error('casty: --attach requires a port or CDP endpoint');process.exit(1);
 }
-const cliArgs = frontendArgs.filter((arg,i) => !['--no-shortcuts','--readonly'].includes(arg) && i!==attachIndex && (attachIndex<0 || i!==attachIndex+1));
+const cliArgs = frontendArgs.filter((arg,i) => !['--win32','--no-shortcuts','--readonly'].includes(arg) && i!==attachIndex && (attachIndex<0 || i!==attachIndex+1));
 if (attachEndpoint && (browserArgs.length || cliArgs.some(arg=>!['--help','-h'].includes(arg)))) {
   console.error('casty: --attach does not accept a navigation URL or browser flags');process.exit(1);
 }
@@ -65,6 +65,7 @@ if (cliArgs[0] === '--help' || cliArgs[0] === '-h') {
 Usage: casty [url] [options] [-- browser-flags...]
 
 Options:
+  --win32          Display in a native Win32 window (Windows only)
   --help, -h       Show this help
   --version, -v, -V
                    Show version
@@ -171,6 +172,15 @@ async function flushOutput() {
 }
 
 // Ensure a browser is installed (downloads Chrome Headless Shell on first run).
+if (frontendArgs[0] === '--win32') {
+  const { runWin32 } = await import('../lib/win32.js');
+  const code = await runWin32(frontendArgs.slice(1), browserArgs);
+  printControlsHelp();
+  console.log(`casty ${pkg.version}\n`);
+  await flushOutput();
+  process.exit(code);
+}
+
 if (!attachEndpoint) await ensureChrome();
 
 import { attachPage, readAttachViewport, attachDisplay } from '../lib/attach.js';
