@@ -72,3 +72,35 @@ test('attach holds last frame after remote exit and drains replies before explic
   expect(shutdown).not.toContain('\x1b[?1000;1003;1006h');
  }finally{for(const timer of timers)clearTimeout(timer);child?.kill();child?.terminal.close();server.stop(true);}
 },10000);
+
+test('quit during slow initial screencast setup restores the terminal', async () => {
+ let child, output = '', starting = false;
+ const server = Bun.serve({port:0, fetch(req,s) {
+  if (new URL(req.url).pathname.startsWith('/devtools/')) {s.upgrade(req);return;}
+  return Response.json([{type:'page',webSocketDebuggerUrl:`ws://127.0.0.1:${s.port}/devtools/page/test`}]);
+ }, websocket:{message(ws,data) {
+  const m=JSON.parse(data);
+  if(m.method==='Page.startScreencast'){starting=true;return;}
+  let result={};
+  if(m.method==='Page.getLayoutMetrics')result={cssVisualViewport:{clientWidth:800,clientHeight:600}};
+  if(m.method==='Page.getNavigationHistory')result={currentIndex:0,entries:[]};
+  ws.send(JSON.stringify({id:m.id,result}));
+ }}});
+ try {
+  child=Bun.spawn([process.execPath,new URL('../index.js',import.meta.url).pathname,'--attach',String(server.port)],{
+   env:{...process.env,CASTY_BROWSER:'/nonexistent'},
+   terminal:{cols:80,rows:30,data(term,bytes){
+    const text=Buffer.from(bytes).toString();output+=text;
+    if(text.includes('\x1b[14t'))term.write('\x1b[4;600;800t');
+   }}
+  });
+  for(let n=0;n<150&&!starting;n++)await Bun.sleep(20);
+  expect(starting).toBe(true);
+  child.terminal.write('\x11');
+  const exit=await Promise.race([child.exited,Bun.sleep(5000).then(()=>{throw Error('startup quit stalled');})]);
+  expect(exit).toBe(0);
+  expect(output).not.toContain('ReferenceError');
+  expect(output).toContain('casty: shutting down');
+  expect(output).toContain('\x1b[?1016l');
+ } finally {child?.kill();child?.terminal.close();server.stop(true);}
+},10000);

@@ -2,7 +2,7 @@ import {test,expect} from 'bun:test';
 import {mkdtempSync,writeFileSync,rmSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createCapturePolicy,standardFormat} from '../lib/capture-format.js';
+import {createCapturePolicy,standardFormat,viewportClip} from '../lib/capture-format.js';
 import {startScreencast} from '../lib/browser.js';
 function fixture(format='bgra',producer='land'){
  const dir=mkdtempSync(join(tmpdir(),'raw-test-'+producer+'-')),path=join(dir,'pixels-without-extension');
@@ -128,4 +128,22 @@ test('only raw streams request notification-only updates and fallback clears the
   expect(calls.filter(c=>c.method==='Page.startScreencast').at(-1).params.clip).toEqual({x:0,y:0,width:200,height:150,scale:1});
   expect(frames).toContain('full-png');expect(frames).not.toContain('notification-placeholder');
  }finally{stream.cleanup();}
+});
+
+test('optional clip metrics do not retry and block initial format negotiation', async () => {
+ const calls=[];
+ const client={async send(method,params,timeout,options){
+  calls.push({method,params,timeout,options});
+  if(method==='Page.getLayoutMetrics')throw Object.assign(Error('CDP timeout'),{code:'CDP_TIMEOUT'});
+  throw Error('raw unsupported');
+ }};
+ const policy=await createCapturePolicy(client,{
+  getTransport:()=> 'file',queryPreference:async()=> 'bgra',
+  getClip:()=>viewportClip(client,{width:800,height:600,zoom:1}).catch(()=>undefined),
+ });
+ expect(calls[0]).toMatchObject({method:'Page.getLayoutMetrics',timeout:5000,options:{retry:false}});
+ expect(calls[1].method).toBe('Page.captureScreenshot');
+ expect(calls[1].params.clip).toBeUndefined();
+ expect(policy.format).toBe('jpeg');
+ policy.close();
 });

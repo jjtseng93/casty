@@ -313,6 +313,10 @@ async function main() {
   let urlBar = null;
   let dismissTimeoutStatus = null;
   let captureReady = false;
+  // Shutdown can run as soon as input/signals are installed, even while a
+  // slow backend is still negotiating its first capture.
+  let resizeTimer = null;
+  let delayedTimers = [];
   const zoomControl = attachEndpoint ? null : {
     get: () => zoomFactor,
     // Re-run the resize path: it recomputes the zoom and the viewport
@@ -326,6 +330,7 @@ async function main() {
   urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown }, { noShortcuts, readonly, mapPointer: attachEndpoint ? (col,row)=>attachedDisplay.map(col,row) : null, getCaptureFormat: () => capturePolicy?.format });
   enableMouse();
   await initializeTransport(() => { forceCapture(); });
+  if (shuttingDown) return;
   urlBar.render();
 
   // Negotiate terminal file/preference and CDP support before selecting raw.
@@ -336,6 +341,8 @@ async function main() {
     queryPreference: queryRawPreference,
     getClip: () => viewportClip(client,captureGeometry).catch(()=>undefined),
   });
+
+  if (shuttingDown) { capturePolicy.close(); return; }
 
   if (attachEndpoint) {
     // Another controller may resize the target without emitting frameResized.
@@ -390,8 +397,9 @@ async function main() {
     return {forceCapture:()=>{}, cleanup:()=>{}};
   }));
 
+  if (shuttingDown) { screencastCleanup?.(); return; }
+
   // Force capture on page load events (debounced — multiple events fire close together)
-  let delayedTimers = [];
   function delayedCapture() {
     for (const t of delayedTimers) clearTimeout(t);
     delayedTimers = [];
@@ -464,13 +472,12 @@ async function main() {
 
   // SIGWINCH: Follow resize + font size changes
   // Debounced (150ms) + guarded with pending flag to catch late resizes
-  let resizeTimer = null;
-  const onResize = () => {
+  function onResize() {
     if (shuttingDown) return;
     if (disconnected) { urlBar.render();return; }
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(handleResize, 150);
-  };
+  }
   process.on('SIGWINCH', onResize);
   // Windows has no reliable SIGWINCH; the TTY's resize event works everywhere
   // (both firing together is coalesced by the debounce).
