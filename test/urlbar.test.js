@@ -302,3 +302,26 @@ test('live image frames restore the editing cursor without repainting the addres
     process.stdout.write = write;
   }
 });
+
+test('temporary status expires and redraws the URL without a new frame', async () => {
+  const bar = editingBar('', 0);
+  bar.editing = false;
+  let renders = 0;
+  bar.render = () => { renders++; };
+  bar.showTemporaryStatus('timeout', 20);
+  await new Promise(resolve => setTimeout(resolve, 40));
+  assert.equal(bar._status, null);
+  assert.equal(renders, 1);
+});
+
+test('recovery dismisses only its own status, preserving newer messages', async () => {
+  const bar = editingBar('', 0);
+  const dismiss = bar.showTemporaryStatus('timeout', 20);
+  bar.setStatus('Copied');
+  dismiss();
+  await new Promise(resolve => setTimeout(resolve, 40));
+  assert.equal(bar._status, 'Copied');
+  const recovered = bar.showTemporaryStatus('timeout', 1000);
+  recovered();
+  assert.equal(bar._status, null);
+});

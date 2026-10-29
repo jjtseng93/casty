@@ -311,6 +311,7 @@ async function main() {
   // format once. Switching away from file transport retires a raw codec.
   let forceCapture = () => {}, screencastCleanup, capturePolicy;
   let urlBar = null;
+  let dismissTimeoutStatus = null;
   let captureReady = false;
   const zoomControl = attachEndpoint ? null : {
     get: () => zoomFactor,
@@ -366,6 +367,8 @@ async function main() {
       if (!transientRawCaptureError(error)) capturePolicy.retireRaw();
       return;
     }
+    dismissTimeoutStatus?.();
+    dismissTimeoutStatus = null;
     if (urlBar) urlBar.renderIfDirty();
   }
 
@@ -416,6 +419,8 @@ async function main() {
   async function shutdown() {
     if (shuttingDown) return;
     shuttingDown = true;
+    dismissTimeoutStatus?.();
+    dismissTimeoutStatus = null;
     terminalClosing = true;
     clearTimeout(resizeTimer);
     process.removeListener('SIGWINCH', onResize);
@@ -559,6 +564,8 @@ async function main() {
   function onRemoteClose() {
     if (shuttingDown || disconnected) return;
     // A backend exit (including its own watchdog) must not discard the view.
+    dismissTimeoutStatus?.();
+    dismissTimeoutStatus = null;
     disconnected = true;
     terminalClosing = true;
     clearTimeout(resizeTimer);
@@ -570,7 +577,8 @@ async function main() {
   }
   client.on('timeout', ({method, retry}) => {
     if (shuttingDown || disconnected) return;
-    urlBar.setStatus(`CDP timeout: ${method}${retry ? ' — retrying' : ' — refreshing; action may have completed'}`);
+    dismissTimeoutStatus?.();
+    dismissTimeoutStatus = urlBar.showTemporaryStatus(`CDP timeout: ${method}${retry ? ' — retrying' : ' — refreshing; action may have completed'}`, 5000);
     if (!retry) forceCapture?.();
   });
   client.once('close', onRemoteClose);
