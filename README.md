@@ -381,6 +381,8 @@ rm -rf ~/.casty
 
 ## Implementation Notes
 
+CDP timeouts: queries, repeatable settings and navigation retry one second after a failed attempt. Late replies arriving during that wait are accepted; deadlines grow after timeouts so slow machines can finish. New navigation supersedes old retries; `javascript:` URLs are never replayed. Failed screenshots use a single recovery queue, even without frame events. Closing cancels retries, and a disconnected backend leaves the terminal view open until you quit. Input, arbitrary JavaScript and script registration are not blindly repeated because their effects may already have happened. Target creation reconciles through the target list. Slow browser startup keeps waiting for the same process; a timed-out installation check does not delete the binary.
+
 ### Input coordinates and device scale factor
 
 CDP `Input.dispatchMouseEvent` always takes **CSS pixels**. Never multiply

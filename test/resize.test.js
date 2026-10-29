@@ -22,7 +22,7 @@ test('a timed-out metrics command resumes capture and coalesces busy resizes to 
   width=1000;const second=resize();width=1200;const third=resize();
   await Promise.all([first,second,third]);await Bun.sleep(120);
   expect(metrics).toEqual([800,1200]);expect(events).toEqual(['stop','resume','stop','resume']);
-  expect(maxActive).toBe(1);expect(errors).toEqual(['CDP timeout: Emulation.setDeviceMetricsOverride']);expect(client.diagnostics().pending).toBe(0);
+  expect(maxActive).toBe(1);expect(errors).toEqual([]);expect(client.diagnostics().pending).toBe(0);
  }finally{client.close();server.stop(true);}
 });
 

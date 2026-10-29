@@ -56,7 +56,8 @@ test('idle refresh retries failed captures and cleanup cancels retries',async()=
  }};
  const stream=await startScreencast(client,{width:8,height:8,idleRefreshInterval:20,onFrame(){}});
  try{
-  await Bun.sleep(75);expect(calls).toBeGreaterThan(1);
+  await Bun.sleep(75);expect(calls).toBe(1);
+   await Bun.sleep(1050);expect(calls).toBe(2);
   stream.cleanup();const stoppedAt=calls;
   await Bun.sleep(50);expect(calls).toBe(stoppedAt);
  }finally{stream.cleanup();}

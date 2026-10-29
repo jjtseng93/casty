@@ -380,6 +380,11 @@ async function main() {
     capturePolicy,
     idleRefreshInterval: attachEndpoint ? 1000 : 0,
     onFrame,
+  }).catch(error => {
+    // A backend can exit under its own watchdog before the first screenshot.
+    // Keep the terminal UI alive; the close handler below marks it disconnected.
+    if (client.diagnostics().state !== 'closed') throw error;
+    return {forceCapture:()=>{}, cleanup:()=>{}};
   }));
 
   // Force capture on page load events (debounced — multiple events fire close together)
@@ -553,7 +558,7 @@ async function main() {
   });
   function onRemoteClose() {
     if (shuttingDown || disconnected) return;
-    if (!attachEndpoint) { void shutdown();return; }
+    // A backend exit (including its own watchdog) must not discard the view.
     disconnected = true;
     terminalClosing = true;
     clearTimeout(resizeTimer);
@@ -563,6 +568,11 @@ async function main() {
     forceCapture = () => {};
     urlBar.markDisconnected();
   }
+  client.on('timeout', ({method, retry}) => {
+    if (shuttingDown || disconnected) return;
+    urlBar.setStatus(`CDP timeout: ${method}${retry ? ' — retrying' : ' — refreshing; action may have completed'}`);
+    if (!retry) forceCapture?.();
+  });
   client.once('close', onRemoteClose);
   if (client.diagnostics().state === 'closed') onRemoteClose();
 }
