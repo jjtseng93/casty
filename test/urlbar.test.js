@@ -14,6 +14,8 @@ test('toURL preserves schemes and defaults public hosts to HTTPS', () => {
   assert.equal(toURL('https://example.com'), 'https://example.com');
   assert.equal(toURL('file:///tmp/page.html'), 'file:///tmp/page.html');
   assert.equal(toURL('example.com/path'), 'https://example.com/path');
+  assert.equal(toURL('中文.tw/路徑'), 'https://中文.tw/路徑');
+  assert.match(toURL('中文 搜尋'), /%E4%B8%AD%E6%96%87%20%E6%90%9C%E5%B0%8B$/);
 });
 
 function editingBar(text, cursor) {
