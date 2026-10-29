@@ -32,3 +32,28 @@ test('native no-shortcuts forwards keys while retaining local editor quit',async
   await f.controller.execAction('command');await f.key('q');expect(f.quit).toBe(1);
  }finally{f.controller.dispose();}
 });
+
+test('native character input does not synthesize a second Space key or reinterpret Unicode',async()=>{
+ const f=fixture();try{
+  const space={key:' ',code:'Space',keyCode:32,modifiers:0,eventType:1};
+  await f.controller.dispatchNative('',space);
+  await f.controller.dispatchNativeText(' ');
+  await f.controller.dispatchNative('',{...space,eventType:3});
+  await f.controller.dispatchNativeText('π😀');
+  const keys=f.calls.filter(c=>c.method==='Input.dispatchKeyEvent');
+  expect(keys.map(c=>c.params.type)).toEqual(['rawKeyDown','keyUp']);
+  expect(keys.map(c=>c.params.code)).toEqual(['Space','Space']);
+  expect(f.calls.filter(c=>c.method==='Input.insertText').map(c=>c.params.text)).toEqual([' ','π😀']);
+ }finally{f.controller.dispose();}
+});
+
+test('native copy failures propagate instead of showing a false success',async()=>{
+ const client=new EventEmitter();client.send=async()=>({result:{value:'selected'}});
+ const bar=new UrlBar({history:new PromptHistory(null)});bar.native=true;bar.render=()=>{};
+ const controller=startInputHandling(client,1,1,1,{},()=>{},null,{}, {native:{urlBar:bar,quit(){},
+  clipboardWrite:async()=>{throw Error('clipboard unavailable');}}});
+ try{
+  await expect(controller.execAction('copy')).rejects.toThrow('clipboard unavailable');
+  expect(bar._status||'').not.toContain('Copied');
+ }finally{controller.dispose();}
+});
