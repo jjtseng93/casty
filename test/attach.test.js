@@ -35,8 +35,8 @@ for(const kind of ['port','http','ws'])test(`attach ${kind} uses an existing tar
  }finally{client?.close();server.stop(true)}
 });
 
-test('multiple or missing pages never silently create/select a target',async()=>{
- for(const pages of [[],[{type:'page',title:'A',webSocketDebuggerUrl:'ws://localhost/devtools/page/a'},{type:'page',title:'B',webSocketDebuggerUrl:'ws://localhost/devtools/page/b'}]]){
+test('multiple pages never silently create/select a target',async()=>{
+ for(const pages of [[{type:'page',title:'A',webSocketDebuggerUrl:'ws://localhost/devtools/page/a'},{type:'page',title:'B',webSocketDebuggerUrl:'ws://localhost/devtools/page/b'}]]){
   const server=Bun.serve({port:0,fetch:()=>Response.json(pages)});
   try{await expect(attachPage(String(server.port))).rejects.toThrow(pages.length?'Multiple pages':'No existing');}
   finally{server.stop(true)}
@@ -68,4 +68,43 @@ test('attach does not lose a second column to CSS viewport rounding',()=>{
  const narrow=attachDisplay(term,{width:100,height:1000});
  expect(narrow.cols).toBeLessThan(10);
  expect(narrow.rows).toBe(24);
+});
+
+for (const lostReply of [false,true]) test(`attach creates an absent page once (lost reply: ${lostReply})`, async()=>{
+ let created=false,puts=0;
+ const methods=[];
+ const server=Bun.serve({port:0,hostname:'127.0.0.1',fetch(req,server){
+  const url=new URL(req.url);
+  const page={type:'page',id:'new',webSocketDebuggerUrl:`ws://127.0.0.1:${server.port}/devtools/page/new`};
+  if(url.pathname.startsWith('/devtools/page/')){server.upgrade(req);return;}
+  if(url.pathname==='/json/list')return Response.json(created?[page]:[]);
+  if(url.pathname==='/json/new'){
+   expect(req.method).toBe('PUT');expect(url.search).toBe('?about:blank');
+   created=true;puts++;
+   return lostReply?new Response('lost response',{status:502}):Response.json(page);
+  }
+  return Response.json({Browser:'Test/1'});
+ },websocket:{message(ws,data){
+  const m=JSON.parse(data);methods.push(m.method);
+  ws.send(JSON.stringify({id:m.id,result:m.method==='Page.getLayoutMetrics'?{cssVisualViewport:{clientWidth:800,clientHeight:600}}:{}}));
+ }}});
+ let client;
+ try {
+  const attached=await attachPage(String(server.port));client=attached.client;
+  expect([attached.cssWidth,attached.cssHeight]).toEqual([800,600]);
+  expect(puts).toBe(1);
+  expect(methods).toEqual(['Page.enable','Page.getLayoutMetrics']);
+ }finally{client?.close();server.stop(true);}
+});
+
+test('failed page creation is reported without repeated creation',async()=>{
+ let puts=0;
+ const server=Bun.serve({port:0,fetch(req){
+  if(new URL(req.url).pathname==='/json/list')return Response.json([]);
+  puts++;return new Response('denied',{status:403});
+ }});
+ try {
+  await expect(attachPage(String(server.port))).rejects.toThrow('CDP HTTP 403');
+  expect(puts).toBe(1);
+ }finally{server.stop(true);}
 });

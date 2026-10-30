@@ -137,7 +137,7 @@ casty --attach 9222 --readonly
 casty --attach 9222 --no-shortcuts
 ```
 
-`--attach` 預設可操作。純 port 代表 localhost；HTTP(S) 查詢既有頁面，page WebSocket URL 則直接指定頁面（也接受 WSS）。有多個頁面時會列出各自的 WebSocket URL 並退出，讓你明確選擇。不啟動／下載瀏覽器、不建立頁面、不自動導航、不修改 viewport／DPR／UA，也不注入啟動腳本。既有畫面會縮放到終端機格子內；終端機 resize 只改本地顯示與滑鼠座標換算。attach 模式不提供 zoom 命令；退出只斷線，不關閉瀏覽器或頁面。
+`--attach` 預設可操作。純 port 代表 localhost；HTTP(S) 查詢既有頁面，page WebSocket URL 則直接指定頁面（也接受 WSS）。有多個頁面時會列出各自的 WebSocket URL 並退出，讓你明確選擇。沒有頁面時會以 PUT /json/new?about:blank 建立一個再連接。不啟動／下載瀏覽器、不額外自動導航、不修改 viewport／DPR／UA，也不注入啟動腳本。既有畫面會縮放到終端機格子內；終端機 resize 只改本地顯示與滑鼠座標換算。attach 模式不提供 zoom 命令；退出只斷線，不關閉瀏覽器或頁面。
 
 `--readonly` 可搭配 attach 或一般啟動，初始只觀看。用 **Ctrl-E → `readonly on`／`readonly off`** 切換；單打 `readonly` 顯示狀態。搭配 `--no-shortcuts` 時可點 **@** 輸入命令。唯讀會阻擋頁面按鍵、滑鼠、滾輪、貼上、導航、重新載入及修改頁面的命令；本地命令列／網址列編輯、複製網址與退出仍可用。這是前端防誤操作，不是伺服器權限隔離。attach 仍會啟用 CDP 頁面事件並啟停畫面串流，可能影響同一 target 的另一個觀看者。
 
