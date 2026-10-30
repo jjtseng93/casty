@@ -97,3 +97,13 @@ test('a committed navigation waits for rendering instead of restarting the page'
   expect(m.map(x=>x.method)).toEqual(['Page.navigate','Page.getFrameTree']);
  },(ws,m)=>{if(m.method==='Page.getFrameTree')ws.send(JSON.stringify({id:m.id,result:{frameTree:{frame:{id:'page',url:'https://buninu.org/',loaderId:'current'}}}}));});
 });
+
+test('a JavaScript modal pauses request deadlines without replaying the initiating command',async()=>{
+ await endpoint(async(c,m)=>{
+  await c.send('Runtime.evaluate',{expression:'alert(3)'},20);
+  expect(m).toHaveLength(1);expect(c.diagnostics().pending).toBe(0);
+ },(ws,m)=>{
+  ws.send(JSON.stringify({method:'Page.javascriptDialogOpening',params:{type:'alert',message:'3'}}));
+  setTimeout(()=>{ws.send(JSON.stringify({method:'Page.javascriptDialogClosed',params:{result:true}}));ws.send(JSON.stringify({id:m.id,result:{}}));},100);
+ });
+});

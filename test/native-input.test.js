@@ -76,3 +76,21 @@ test('native deactivation releases held input and permits subsequent presses',as
   expect(f.calls.filter(c=>c.method==='Input.dispatchKeyEvent').at(-1).params.type).toBe('rawKeyDown');
  }finally{f.controller.dispose();}
 });
+
+test('browser modal input bypasses the page event waiting for its answer without editing the address bar',async()=>{
+ const client=new EventEmitter();let release,done=false;
+ client.send=async(method,p)=>{
+  if(method==='Input.dispatchKeyEvent'&&p.type==='rawKeyDown') {
+   if(p.key==='a'){client.emit('Page.javascriptDialogOpening',{type:'alert',message:'3'});await new Promise(resolve=>release=resolve);done=true;}
+   if(p.key==='Enter'){client.emit('Page.javascriptDialogClosed',{result:true});release();}
+  }return {};
+ };
+ const bar=new UrlBar({history:new PromptHistory(null)});bar.native=true;bar.render=()=>{};
+ const controller=startInputHandling(client,1,1,1,{},()=>{},null,{}, {native:{urlBar:bar,quit(){}}});
+ try{
+  const pending=controller.dispatchNative('',{key:'a',code:'KeyA',keyCode:65,modifiers:0,eventType:1});
+  await Bun.sleep(5);expect(done).toBe(false);expect(bar.editing).toBe(false);
+  await controller.dispatchNative('',{key:'Enter',code:'Enter',keyCode:13,modifiers:0,eventType:1});
+  await pending;expect(done).toBe(true);
+ }finally{controller.dispose();}
+});
