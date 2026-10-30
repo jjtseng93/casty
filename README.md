@@ -246,6 +246,7 @@ Win32 accepts the same command names. `kitty` reports that Kitty transport is un
 | `find [text]` (`/text`) | Find text in the page; `find` alone goes to the next match |
 | `eruda` (`devtools`) | Show or hide the [eruda](https://github.com/liriliri/eruda) console in the page (loaded from a CDN, needs network) |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | Show or set the zoom; 1 is the automatic zoom |
+| `size` | Show the current viewport width and height (CSS pixels) from CDP without resizing it |
 | `cdp [ws]` | Show CDP addr:port, connection state, engine, protocol and pending requests; `cdp ws` shows the full WebSocket URL |
 | `kitty [inline\|file]` | Show transport and negotiated capture format, or switch transport for this session |
 | `pixelmouse [on\|off]` | Show mouse mode; query and enable pixels, or return to cells |

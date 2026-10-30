@@ -11,7 +11,7 @@ test('Ctrl+E pixelmouse on/off switches real input handling and keeps URL bar co
  const output=[],events=[];
  process.stdout.write=s=>{output.push(String(s));return true;};
  process.stdin.setRawMode=()=>{};process.stdin.resume=()=>process.stdin;
- const client=new EventEmitter();client.send=async(method,params)=>{events.push({method,params});return method==='Page.getNavigationHistory'?{currentIndex:0,entries:[]}:{};};
+ const client=new EventEmitter();client.send=async(method,params)=>{events.push({method,params});if(method==='Page.getLayoutMetrics')return {cssVisualViewport:{clientWidth:1920,clientHeight:1080}};return method==='Page.getNavigationHistory'?{currentIndex:0,entries:[]}:{};};
  const bar=startInputHandling(client,10,20,2,{'ctrl+e':'command'},()=>{});
  bar.history.file=null;
  const feed=async text=>{process.stdin.emit('data',Buffer.from(text));await Bun.sleep(10);};
@@ -29,11 +29,17 @@ test('Ctrl+E pixelmouse on/off switches real input handling and keeps URL bar co
  await command('kitty');assert.ok(output.some(s=>s.includes('Kitty: file')));
  await command('kitty inline');assert.equal(detectTransport(),'inline');
  await command('kitty invalid');assert.equal(detectTransport(),'inline');
+ await command('size');assert.equal(bar._status,'Viewport: 1920×1080 CSS px');
+ assert.equal(events.filter(e=>e.method==='Page.getLayoutMetrics').length,1);
+ await command('size 800');assert.equal(bar._status,'Usage: size');
+ assert.equal(events.filter(e=>e.method==='Page.getLayoutMetrics').length,1);
+ assert.equal(events.some(e=>e.method==='Emulation.setDeviceMetricsOverride'),false);
+
  const count=events.filter(e=>e.method==='Input.dispatchMouseEvent').length;
  await feed('\\x1b[<0;25;10M');assert.equal(bar.editing,true);assert.equal(events.filter(e=>e.method==='Input.dispatchMouseEvent').length,count);
  disableMouse();process.exit(0);
  `;
  const child=Bun.spawn([process.execPath,'-e',script],{stdout:'pipe',stderr:'pipe'});
  const errors=new Response(child.stderr).text();
- expect(await child.exited).toBe(0);expect(await errors).toBe('');
+ const code=await child.exited;const stderr=await errors;expect(stderr).toBe('');expect(code).toBe(0);
 },10000);

@@ -239,6 +239,7 @@ Win32 でも同じコマンド名を使用できます。`kitty` は Kitty 転�
 | `find [テキスト]` (`/テキスト`) | ページ内検索。`find` だけで次の一致へ |
 | `eruda` (`devtools`) | ページ内の [eruda](https://github.com/liriliri/eruda) コンソールを表示・非表示（CDN から読み込むためネットワークが必要） |
 | `zoom [n\|n%\|+\|-\|reset]` (`z`) | ズームの表示・設定（1 が自動ズーム） |
+| `size` | CDP から現在の viewport の幅と高さ（CSS ピクセル）を表示。サイズは変更しません |
 | `cdp [ws]` | CDP の addr:port、接続状態、エンジン、プロトコル、応答待ち数を表示。`cdp ws` は完全な WebSocket URL を表示 |
 | `kitty [inline\|file]` | 転送方式とネゴシエートしたキャプチャ形式を表示、または今回の転送方式を切り替え |
 | `pixelmouse [on\|off]` | マウスモードを表示、ピクセル座標を照会して有効化、またはセル座標に戻す |
