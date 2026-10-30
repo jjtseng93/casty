@@ -57,3 +57,22 @@ test('native copy failures propagate instead of showing a false success',async()
   expect(bar._status||'').not.toContain('Copied');
  }finally{controller.dispose();}
 });
+
+test('native deactivation releases held input and permits subsequent presses',async()=>{
+ const f=fixture({noShortcuts:true});
+ try {
+  await f.key('a',0);
+  await f.controller.dispatchNative('\x1b[<0;20;20M');
+  await f.controller.dispatchNative('\x1b[<32;40;40M');
+  await f.controller.releaseNativeInput();
+  const keys=f.calls.filter(c=>c.method==='Input.dispatchKeyEvent');
+  expect(keys.map(c=>c.params.type)).toEqual(['rawKeyDown','keyUp']);
+  const mouse=f.calls.filter(c=>c.method==='Input.dispatchMouseEvent');
+  expect(mouse.some(c=>c.params.type==='mousePressed')).toBe(true);
+  expect(mouse.at(-1).params).toMatchObject({type:'mouseReleased',buttons:0,modifiers:0});
+  await f.controller.releaseNativeInput();
+  expect(f.calls.filter(c=>c.method==='Input.dispatchKeyEvent')).toHaveLength(2);
+  await f.key('a',0);
+  expect(f.calls.filter(c=>c.method==='Input.dispatchKeyEvent').at(-1).params.type).toBe('rawKeyDown');
+ }finally{f.controller.dispose();}
+});

@@ -53,3 +53,18 @@ test('a rejected screencast start releases its event listener', async () => {
   await expect(startScreencast(client,{width:100,height:100,onFrame(){}})).rejects.toThrow('Connection closed');
   expect(client.listenerCount('Page.screencastFrame')).toBe(0);
 });
+
+test('native attach refreshes remote geometry before frames without resizing it',async()=>{
+ const {createNativeAttachPolicy}=await import('../lib/native-capture.js');
+ const calls=[],viewports=[];let width=800;
+ const client={send:async(method,params)=>{
+  calls.push(method);
+  if(method==='Page.getLayoutMetrics')return {cssVisualViewport:{clientWidth:width,clientHeight:600}};
+  expect(viewports.at(-1).width).toBe(width);
+  return {data:'frame'};
+ }};
+ const policy=createNativeAttachPolicy(client,v=>viewports.push(v));
+ await policy.capture({},1000);width=1200;await policy.capture({},1000);
+ expect(viewports.map(v=>v.width)).toEqual([800,1200]);
+ expect(calls).toEqual(['Page.getLayoutMetrics','Page.captureScreenshot','Page.getLayoutMetrics','Page.captureScreenshot']);
+});
