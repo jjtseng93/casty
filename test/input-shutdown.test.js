@@ -13,8 +13,8 @@ for(const mode of ['shutdown-reject','shutdown-resolve','live-reject']) {
     const client=new EventEmitter();
     client.send=(method,params)=>{
       if(method==='Page.getNavigationHistory')return Promise.resolve({currentIndex:0,entries:[]});
-      if(method==='Input.insertText'){
-        inputs.push(params.text);
+      if(method==='Input.dispatchKeyEvent'&&params.type==='rawKeyDown'){
+        inputs.push(params.key);
         if(inputs.length===1)return new Promise((resolve,reject)=>{resolveInput=resolve;rejectInput=reject;});
       }
       return Promise.resolve({});

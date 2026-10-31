@@ -16,7 +16,7 @@ test('readonly blocks page input and navigation, toggles locally, and maps attac
  await command('open https://elsewhere.test');
  assert.equal(calls.some(([m])=>m.startsWith('Input.')||m==='Page.navigate'||m==='Page.reload'||m==='Runtime.evaluate'),false);
  await command('readonly off');await input('x');
- assert.ok(calls.some(([m,p])=>m==='Input.insertText'&&p.text==='x'));
+ assert.deepEqual(calls.filter(([m,p])=>m==='Input.dispatchKeyEvent'&&p.key==='x').map(([,p])=>p.type),['rawKeyDown','char','keyUp']);
  await input('\\x1b[<64;3;4M');
  assert.ok(calls.some(([m,p])=>m==='Input.dispatchMouseEvent'&&p.type==='mouseWheel'&&p.x===300&&p.y===400));
  await command('readonly on');const count=calls.length;await input('y');await input('\\x1b[<65;3;4M');

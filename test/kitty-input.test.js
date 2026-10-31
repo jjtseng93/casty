@@ -30,6 +30,42 @@ test('Kitty input reaches CDP, local commands stay local, releases cannot quit, 
  }
  events.length=0;
 
+ // Legacy letters use the same CDP sequence as Kitty press + release.
+ for(const letter of 'wasdW0 ') {
+  events.length=0;
+  await feed(letter);
+  const legacy=events.map(e=>e.params);
+  assert.deepEqual(legacy.map(e=>e.type),['rawKeyDown','char','keyUp']);
+  assert.equal(legacy[0].code,letter===' '?'Space':letter==='0'?'Digit0':'Key'+letter.toUpperCase());
+  assert.equal(legacy[1].text,letter);
+  events.length=0;
+  await feed('\x1b['+letter.charCodeAt(0)+'u\x1b['+letter.charCodeAt(0)+';1:3u');
+  assert.deepEqual(events.map(e=>e.params),legacy);
+ }
+ events.length=0;
+ await feed('\x1b[200~');await feed('w');await feed('\x1b[201~');
+ assert.deepEqual(events,[{method:'Input.insertText',params:{text:'w'}}]);
+ // Coalescing stdin chunks must not turn real keys into insertText.
+ events.length=0;
+ for(const key of 'wasd')await feed(key);
+ const separate=JSON.parse(JSON.stringify(events));
+ events.length=0;await feed('wasd');
+ assert.deepEqual(events,separate);
+ events.length=0;await feed('w');await feed('中');await feed('a');
+ const mixed=JSON.parse(JSON.stringify(events));
+ events.length=0;await feed('w中a');assert.deepEqual(events,mixed);
+ events.length=0;await feed('w');await feed(' ');await feed('a');
+ const spaced=JSON.parse(JSON.stringify(events));
+ events.length=0;await feed('w a');assert.deepEqual(events,spaced);
+ // Paste delimiters may themselves straddle chunks.
+ events.length=0;
+ for(const part of ['\x1b[20','0~wa','sd\x1b[2','01~'])await feed(part);
+ assert.deepEqual(events,[{method:'Input.insertText',params:{text:'wasd'}}]);
+ for(const text of ['中','中文😀']) {
+  events.length=0;await feed(text);
+  assert.deepEqual(events,[{method:'Input.insertText',params:{text}}]);
+ }
+ events.length=0;
  await feed('\x1b[57444;9u\x1b[119;9u\x1b[119;9:2u\x1b[119;9:3u\x1b[57444;1:3u');
  const keys=()=>events.filter(e=>e.method==='Input.dispatchKeyEvent').map(e=>e.params);
  assert.deepEqual(keys().map(k=>[k.key,k.type]),[['Meta','rawKeyDown'],['w','rawKeyDown'],['w','rawKeyDown'],['w','keyUp'],['Meta','keyUp']]);
