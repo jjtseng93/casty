@@ -6,7 +6,7 @@ test('readonly blocks page input and navigation, toggles locally, and maps attac
  import {startInputHandling,stopInputHandling} from ${JSON.stringify(new URL('../lib/input.js',import.meta.url).href)};
  process.stdout.write=()=>true;process.stdin.setRawMode=()=>{};process.stdin.resume=()=>process.stdin;
  const calls=[];const client=new EventEmitter();client.send=async(method,params)=>{
- calls.push([method,params]);return method==='Page.getNavigationHistory'?{currentIndex:0,entries:[{url:'https://example.test'}]}:{};
+ calls.push([method,params]);if(method==='Runtime.evaluate'&&params.awaitPromise)return {result:{value:true}};return method==='Page.getNavigationHistory'?{currentIndex:0,entries:[{url:'https://example.test'}]}:{};
  };
  const bar=startInputHandling(client,10,20,1,{'ctrl+e':'command','ctrl+r':'reload'},()=>{},null,{},
  {readonly:true,mapPointer:(col,row)=>({x:col*100,y:row*100})});bar.history.file=null;

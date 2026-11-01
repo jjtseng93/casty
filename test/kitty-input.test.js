@@ -10,10 +10,15 @@ test('Kitty input reaches CDP, local commands stay local, releases cannot quit, 
  process.stdout.write=s=>{output.push(String(s));return true;};
  process.stdin.setRawMode=()=>{};process.stdin.resume=()=>process.stdin;
  process.on('SIGINT',()=>quits++);
- const client=new EventEmitter();client.send=async(method,params)=>{events.push({method,params});return {};};
+ const client=new EventEmitter();client.send=async(method,params)=>{if(method==='Runtime.evaluate'&&params.awaitPromise)return {result:{value:true}};events.push({method,params});return {};};
  const bar=startInputHandling(client,10,20,1,{'ctrl+e':'command','alt+l':'url_bar','ctrl+q':'quit','alt+c':'copy','ctrl+v':'paste'},()=>{});
  bar.history.file=null;
  const feed=async text=>{process.stdin.emit('data',Buffer.from(text));await Bun.sleep(15);};
+ // Release scheduling must not hold unrelated keydowns behind a page frame.
+ // Chunk boundaries can therefore change interleaving, but not press/char
+ // order, the released keys, or the bytes delivered to the page.
+ const normalize=list=>({input:list.filter(e=>e.params.type!=='keyUp'),
+   released:list.filter(e=>e.params.type==='keyUp').sort((a,b)=>a.params.code.localeCompare(b.params.code))});
  await feed('\x03');assert.equal(quits,0);
  assert.deepEqual(events.filter(e=>e.method==='Input.dispatchKeyEvent').map(e=>[e.params.key,e.params.type]),[['c','rawKeyDown'],['c','keyUp']]);
  events.length=0;
@@ -50,13 +55,13 @@ test('Kitty input reaches CDP, local commands stay local, releases cannot quit, 
  for(const key of 'wasd')await feed(key);
  const separate=JSON.parse(JSON.stringify(events));
  events.length=0;await feed('wasd');
- assert.deepEqual(events,separate);
+ assert.deepEqual(normalize(events),normalize(separate));
  events.length=0;await feed('w');await feed('中');await feed('a');
  const mixed=JSON.parse(JSON.stringify(events));
- events.length=0;await feed('w中a');assert.deepEqual(events,mixed);
+ events.length=0;await feed('w中a');assert.deepEqual(normalize(events),normalize(mixed));
  events.length=0;await feed('w');await feed(' ');await feed('a');
  const spaced=JSON.parse(JSON.stringify(events));
- events.length=0;await feed('w a');assert.deepEqual(events,spaced);
+ events.length=0;await feed('w a');assert.deepEqual(normalize(events),normalize(spaced));
  // Paste delimiters may themselves straddle chunks.
  events.length=0;
  for(const part of ['\x1b[20','0~wa','sd\x1b[2','01~'])await feed(part);

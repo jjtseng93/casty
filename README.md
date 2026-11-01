@@ -217,7 +217,7 @@ reaching casty still cannot be forwarded.
 
 ### Address Bar
 
-On Win32, the address bar supports IME input. The icon/loading indicator and ` > ` / `cmd> ` prompt occupy a separate, non-editable 32px area (about four characters). **Ctrl+A** selects only the text. Tab switches prompts, Up/Down use separate histories, clicking the prompt switches modes, and double-clicking the left/middle/right thirds selects the next/previous history entry or submits. Page clicks request the same red marker as the terminal frontend.
+On Win32, the address bar supports IME input. The icon/loading indicator and ` > ` / `cmd> ` prompt occupy a separate, non-editable 32px area (about four characters). **Ctrl+A** selects only the text. Tab switches prompts, Up/Down use separate histories, clicking the prompt switches modes, and double-clicking the left/middle/right thirds selects the next/previous history entry or submits. Clicks are dispatched immediately; the red marker is added afterward without waiting for painting or blocking later input.
 
 **Alt+L** to open. Type a URL or search query. `/b query` searches bookmarks.
 

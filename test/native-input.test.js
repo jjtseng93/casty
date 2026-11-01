@@ -6,7 +6,7 @@ import {runWin32} from '../lib/win32.js';
 
 function fixture(options={}){
  const calls=[],client=new EventEmitter();
- client.send=async(method,params)=>{calls.push({method,params});if(method==='Page.getNavigationHistory')return {currentIndex:0,entries:[{id:1,url:'https://example.com'}]};return {};};
+ client.send=async(method,params)=>{calls.push({method,params});await options.beforeReply?.(method,params);if(method==='Page.getNavigationHistory')return {currentIndex:0,entries:[{id:1,url:'https://example.com'}]};return {};};
  const bar=new UrlBar({history:new PromptHistory(null),commandEntry:options.noShortcuts});bar.native=true;bar.render=()=>{};
  let quit=0,copied='';
  const controller=startInputHandling(client,1,1,1,{'ctrl+q':'quit','ctrl+e':'command','ctrl+r':'reload','ctrl+v':'paste'},()=>{},null,{},
@@ -93,4 +93,66 @@ test('browser modal input bypasses the page event waiting for its answer without
   await controller.dispatchNative('',{key:'Enter',code:'Enter',keyCode:13,modifiers:0,eventType:1});
   await pending;expect(done).toBe(true);
  }finally{controller.dispose();}
+});
+
+test('mouse down is immediate, touch slop does not duplicate down, and multi-click counts survive',async()=>{
+ const f=fixture();const mouse=()=>f.calls.filter(c=>c.method==='Input.dispatchMouseEvent').map(c=>c.params);
+ try{
+  await f.controller.dispatchNative('\x1b[<0;20;20M');
+  expect(mouse().map(p=>p.type)).toEqual(['mousePressed']);
+  await f.controller.dispatchNative('\x1b[<32;21;20M'); // retained touch slop
+  expect(mouse().map(p=>p.type)).toEqual(['mousePressed']);
+  await f.controller.dispatchNative('\x1b[<0;21;20m');
+  expect(mouse().map(p=>p.type)).toEqual(['mousePressed','mouseReleased']);
+  expect(mouse()[1].x).toBe(mouse()[0].x);
+  await f.controller.dispatchNative('\x1b[<0;20;20M');
+  expect(mouse().at(-1).clickCount).toBe(2);
+  await f.controller.dispatchNative('\x1b[<32;40;40M');
+  expect(mouse().filter(p=>p.type==='mousePressed')).toHaveLength(2);
+  expect(mouse().at(-1).type).toBe('mouseMoved');
+  await f.controller.dispatchNative('\x1b[<0;40;40m');
+  expect(mouse().at(-1).type).toBe('mouseReleased');
+  const marker=f.calls.findIndex(c=>c.method==='Runtime.evaluate'&&c.params.expression?.includes('__casty_click_marker'));
+  const release=f.calls.findIndex(c=>c.method==='Input.dispatchMouseEvent'&&c.params.type==='mouseReleased');
+  expect(marker).toBeGreaterThan(release);
+ }finally{f.controller.dispose();}
+});
+
+
+test('double click uses arrival times even when the first CDP reply stalls',async()=>{
+ let unblock,started;
+ const entered=new Promise(resolve=>started=resolve);
+ let first=true;
+ const f=fixture({beforeReply:async(method,params)=>{
+  if(first&&method==='Input.dispatchMouseEvent'&&params.type==='mousePressed'){
+   first=false;started();await new Promise(resolve=>unblock=resolve);
+  }
+ }});
+ try{
+  const down=f.controller.dispatchNative('\x1b[<0;20;20M');
+  await entered;
+  const rest=[
+   f.controller.dispatchNative('\x1b[<0;20;20m'),
+   f.controller.dispatchNative('\x1b[<0;20;20M'),
+   f.controller.dispatchNative('\x1b[<0;20;20m'),
+  ];
+  await Bun.sleep(450);unblock();
+  await Promise.all([down,...rest]);
+  const mouse=f.calls.filter(c=>c.method==='Input.dispatchMouseEvent');
+  expect(mouse.map(c=>c.params.clickCount)).toEqual([1,1,2,2]);
+ }finally{unblock?.();f.controller.dispose();}
+});
+
+test('double tap tolerates one terminal cell of finger drift independently of page zoom',async()=>{
+ const f=fixture();
+ try{
+  f.controller.updateCellSize(12,24,0.5);
+  for(const report of ['\x1b[<0;20;20M','\x1b[<0;20;20m','\x1b[<0;21;21M','\x1b[<0;21;21m'])
+   await f.controller.dispatchNative(report);
+  let presses=f.calls.filter(c=>c.method==='Input.dispatchMouseEvent'&&c.params.type==='mousePressed');
+  expect(presses.map(c=>c.params.clickCount)).toEqual([1,2]);
+  await f.controller.dispatchNative('\x1b[<0;25;25M');
+  presses=f.calls.filter(c=>c.method==='Input.dispatchMouseEvent'&&c.params.type==='mousePressed');
+  expect(presses.at(-1).params.clickCount).toBe(1);
+ }finally{f.controller.dispose();}
 });

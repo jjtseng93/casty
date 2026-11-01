@@ -64,5 +64,59 @@ test('CDP forwards real press/repeat/release, suppresses orphan releases and res
   expect(calls.slice(3).map(x=>x.type)).toEqual(['rawKeyDown','char']);
   await d.releaseAll();expect(calls.at(-1)).toMatchObject({type:'keyUp',key:'a',modifiers:0});
   calls.length=0;await d.send(parseInput('\x1b[119;9u'),false);
-  expect(calls.map(x=>x.type)).toEqual(['rawKeyDown','keyUp']);
+  expect(calls.filter(x=>x.type).map(x=>x.type)).toEqual(['rawKeyDown']);
+  await d.releaseAll();
+  expect(calls.filter(x=>x.type).map(x=>x.type)).toEqual(['rawKeyDown','keyUp']);
+});
+
+test('legacy release waits for a frame without blocking other keys and cleanup invalidates late probes',async()=>{
+ const calls=[],frames=[];
+ const d=new KeyboardDispatch({send:async(method,p)=>{
+  calls.push({method,...p});
+  if(method==='Runtime.evaluate')return new Promise(resolve=>frames.push(resolve));
+  return {};
+ }});
+ try{
+  await d.send({key:'a',code:'KeyA',text:'a'});
+  await d.send({key:'b',code:'KeyB',text:'b'});
+  expect(calls.filter(c=>c.type).map(c=>[c.type,c.key])).toEqual([['rawKeyDown','a'],['char','a'],['rawKeyDown','b'],['char','b']]);
+  expect(frames).toHaveLength(1);
+  frames[0]({result:{value:true}});await Bun.sleep(0);
+  expect(calls.filter(c=>c.type==='keyUp').map(c=>c.key)).toEqual(['a']);
+  expect(frames).toHaveLength(2);
+  await d.releaseAll();frames[1]({result:{value:true}});await Bun.sleep(0);
+  expect(calls.filter(c=>c.type==='keyUp').map(c=>c.key)).toEqual(['a','b']);
+  expect(d.held.size).toBe(0);expect(d.legacy.size).toBe(0);
+ }finally{await d.releaseAll();for(const resolve of frames)resolve({result:{value:true}});}
+});
+
+test('hidden or stalled pages get a bounded release and repeated legacy presses remain distinct',async()=>{
+ const calls=[],frames=[];
+ const d=new KeyboardDispatch({send:async(method,p)=>{
+  if(method==='Runtime.evaluate')return new Promise(resolve=>frames.push(resolve));
+  calls.push(p);return {};
+ }},{releaseTimeout:15});
+ try{
+  const key={key:' ',code:'Space',text:' '};
+  await d.send(key);await d.send(key);
+  expect(calls.map(c=>c.type)).toEqual(['rawKeyDown','char','keyUp','rawKeyDown','char']);
+  await Bun.sleep(30);
+  expect(calls.map(c=>c.type)).toEqual(['rawKeyDown','char','keyUp','rawKeyDown','char','keyUp']);
+  expect(d.legacy.size).toBe(0);expect(d.held.size).toBe(0);
+  frames[0]({result:{value:true}});await Bun.sleep(0);
+  expect(calls.filter(c=>c.type==='keyUp')).toHaveLength(2);
+ }finally{await d.releaseAll();for(const resolve of frames)resolve({result:{value:true}});}
+});
+
+test('cleanup during a pending legacy keydown does not restart text or a release timer',async()=>{
+ const calls=[];let resolve;
+ const d=new KeyboardDispatch({send:async(method,p)=>{
+  calls.push(p.type);
+  if(p.type==='rawKeyDown')return new Promise(done=>{resolve=done});
+  return {};
+ }});
+ const pending=d.send({key:'a',code:'KeyA',text:'a'});
+ await d.releaseAll();resolve();await pending;
+ expect(calls).toEqual(['rawKeyDown','keyUp']);
+ expect(d.legacy.size).toBe(0);expect(d.held.size).toBe(0);
 });

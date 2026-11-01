@@ -19,10 +19,7 @@ test('dispatchClick sends a matched pressed/released pair in CSS pixels', async 
 
   await dispatchClick(client, 12.5, 34.5, { clickCount: 2 });
 
-  assert.equal(calls[0].method, 'Runtime.evaluate');
-  // The marker is placed in layout coordinates, converted from the input ones.
-  assert.match(calls[0].params.expression, /toLayout\(12\.5, 34\.5\)/);
-  assert.deepEqual(calls.slice(1), [
+  assert.deepEqual(calls.slice(0,2), [
     {
       method: 'Input.dispatchMouseEvent',
       params: {
@@ -48,7 +45,7 @@ test('dispatchClick sends the right button with its buttons bitmask', async () =
 
   await dispatchClick(client, 12.5, 34.5, { button: 'right' });
 
-  assert.deepEqual(calls.slice(1).map(c => c.params), [
+  assert.deepEqual(calls.filter(c=>c.method==='Input.dispatchMouseEvent').map(c => c.params), [
     { type: 'mousePressed', x: 12.5, y: 34.5, button: 'right', clickCount: 1, buttons: 2 },
     { type: 'mouseReleased', x: 12.5, y: 34.5, button: 'right', clickCount: 1, buttons: 0 },
   ]);

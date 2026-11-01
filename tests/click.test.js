@@ -19,3 +19,11 @@ test('actual input failures still propagate',async()=>{
   const client={async send(method){if(method==='Input.dispatchMouseEvent')throw Error('Input disconnected');return {};}};
   await expect(dispatchClick(client,1,2)).rejects.toThrow('Input disconnected');
 });
+
+test('a marker that never completes cannot delay press, release or the following click',async()=>{
+ const calls=[];
+ const client={async send(method,params){calls.push({method,params});if(method==='Runtime.evaluate')return new Promise(()=>{});return {};}};
+ await dispatchClick(client,1,2);await dispatchClick(client,3,4);
+ expect(calls.map(c=>c.params.type??'marker')).toEqual(['mousePressed','mouseReleased','marker','mousePressed','mouseReleased','marker']);
+ expect(calls[2].params.expression).not.toContain('requestAnimationFrame');
+});
