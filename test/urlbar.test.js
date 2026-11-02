@@ -374,3 +374,12 @@ test('navigation invalidates a suspended URL draft without discarding cut buffer
   bar.cancelEditing();
   await next;
 });
+
+test('unchanged URL reopens selected while changed drafts still resume',async()=>{
+ const b=newBar();b.native=true;b.currentUrl='https://example.com';
+ let pending=b.startEditing();b.moveCursor(4);b.suspendEditing();await pending;
+ pending=b.startEditing();assert.equal(b.selectedText,b.currentUrl);
+ b.handleInput('\x1b[C');b.insertText('/draft');b.suspendEditing();await pending;
+ pending=b.startEditing();assert.equal(b.text,b.currentUrl+'/draft');assert.equal(b.selectedText,'');
+ b.cancelEditing();await pending;
+});

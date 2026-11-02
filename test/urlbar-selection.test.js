@@ -71,3 +71,12 @@ test('selection hides the block cursor at the exclusive end and restores it when
    step('X','',true);
  }finally{process.stdout.write=write;}
 });
+
+test('stationary opening motion preserves full selection until an actual drag',()=>{
+ const b=bar('https://example.com/');b.selectAll=true;
+ b.armDrag(8);b.pointerMove(8);b.pointerUp();
+ expect(b.selectedText).toBe(b.text);
+ b.armDrag(8);b.pointerMove(12);b.pointerUp();
+ expect(b.selectedText.length).toBeGreaterThan(0);
+ expect(b.selectedText).not.toBe(b.text);
+});
