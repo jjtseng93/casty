@@ -156,3 +156,19 @@ test('double tap tolerates one terminal cell of finger drift independently of pa
   expect(presses.at(-1).params.clickCount).toBe(1);
  }finally{f.controller.dispose();}
 });
+
+test('page click suspends the shared editor and reopening restores Ctrl-U text', async () => {
+ const f=fixture();
+ try {
+  await f.controller.execAction('url_bar');
+  f.bar._setText('draft😀');
+  await f.key('u');
+  expect(f.bar.text).toBe('');
+  await f.controller.dispatchNative('\x1b[<0;20;20M');
+  expect(f.bar.editing).toBe(false);
+  await f.controller.execAction('url_bar');
+  expect(f.bar.text).toBe('');
+  await f.key('u');
+  expect(f.bar.text).toBe('draft😀');
+ } finally { f.controller.dispose(); }
+});

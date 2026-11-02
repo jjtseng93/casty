@@ -327,3 +327,50 @@ test('recovery dismisses only its own status, preserving newer messages', async 
   recovered();
   assert.equal(bar._status, null);
 });
+
+for (const native of [false, true]) {
+  test(`${native ? 'Win32' : 'Kitty'} page focus preserves cut buffers and their cursor boundaries`, async () => {
+    const bar = newBar();
+    bar.native = native;
+    bar.currentUrl = 'https://example.com';
+    let editing = bar.startEditing({ text: '前😀後尾' });
+    bar.moveCursor(2);
+    bar.handleInput('\x15');
+    bar.handleInput('\x0b');
+    assert.equal(bar.text, '');
+    bar.suspendEditing();
+    assert.equal(await editing, null);
+    editing = bar.startEditing();
+    assert.equal(bar.text, '');
+    assert.equal(bar.cursor, 0);
+    bar.handleInput('\x15');
+    bar.handleInput('\x0b');
+    assert.equal(bar.text, '前😀後尾');
+    bar.moveCursor(2, true);
+    const selection = bar.selectedText;
+    bar.suspendEditing();
+    await editing;
+    editing = bar.startEditing();
+    assert.equal(bar.selectedText, selection);
+    bar.cancelEditing();
+    await editing;
+    editing = bar.startEditing();
+    assert.equal(bar.text, bar.currentUrl);
+    bar.cancelEditing();
+    await editing;
+  });
+}
+
+test('navigation invalidates a suspended URL draft without discarding cut buffers', async () => {
+  const bar = newBar();
+  const editing = bar.startEditing({ text: 'saved' });
+  bar.handleInput('\x15');
+  bar.suspendEditing();
+  await editing;
+  bar.setUrl('https://new.example');
+  const next = bar.startEditing();
+  assert.equal(bar.text, 'https://new.example');
+  assert.equal(bar._savedHead, 'saved');
+  bar.cancelEditing();
+  await next;
+});
