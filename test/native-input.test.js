@@ -172,3 +172,17 @@ test('page click suspends the shared editor and reopening restores Ctrl-U text',
   expect(f.bar.text).toBe('draft😀');
  } finally { f.controller.dispose(); }
 });
+
+test('paired native characters use CDP char while IME commits retain insertText',async()=>{
+ const f=fixture({noShortcuts:true});
+ const a={key:'a',code:'KeyA',keyCode:65,modifiers:0,eventType:1};
+ try{
+  await f.controller.dispatchNative('',a);
+  await f.controller.dispatchNativeText('a',a);
+  await f.controller.dispatchNative('',{...a,eventType:3});
+  expect(f.calls.filter(c=>c.method==='Input.dispatchKeyEvent').map(c=>c.params.type)).toEqual(['rawKeyDown','char','keyUp']);
+  expect(f.calls.some(c=>c.method==='Input.insertText')).toBe(false);
+  await f.controller.dispatchNativeText('中文');
+  expect(f.calls.at(-1)).toMatchObject({method:'Input.insertText',params:{text:'中文'}});
+ }finally{f.controller.dispose();}
+});
