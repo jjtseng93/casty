@@ -35,3 +35,33 @@ test('unavailable caret geometry retains a known direction and long offsets are 
  expect(b.cursor).toBe(70000);expect(b.selectedText).toBe('😀');
  expect(nativeSelection(b)).toEqual([70002,70000]);
 });
+
+test('unchanged native bounds cannot reverse a known Shift selection through stale caret geometry',()=>{
+ const b=editor();
+ for(const expected of ['d','cd','😀cd']){
+  b.handleInput('\x1b[1;2D');
+  const [anchor,caret]=nativeSelection(b);
+  // Simulate both the pre-keydown sync and the Shift keyup sync. A stale
+  // native caret hint must not replace the shared editor's known direction.
+  syncNativeSelection(b,b.text,caret,anchor,false);
+  syncNativeSelection(b,b.text,caret,anchor,false);
+  expect(b.selectedText).toBe(expected);
+  expect(b.cursor).toBeLessThan(b.selectionAnchor);
+ }
+ for(const expected of ['cd','d','']){
+  b.handleInput('\x1b[1;2C');
+  const [anchor,caret]=nativeSelection(b);
+  syncNativeSelection(b,b.text,Math.min(anchor,caret),Math.max(anchor,caret),false);
+  expect(b.selectedText).toBe(expected);
+ }
+});
+
+test('an explicit native mouse change may reverse the same selection range',()=>{
+ const b=editor();
+ b.moveCursor(2);b.moveCursor(4,true);
+ const [left,right]=nativeSelection(b);
+ expect(b.cursor).toBe(4);
+ syncNativeSelection(b,b.text,left,right,true,true);
+ expect(b.cursor).toBe(2);expect(b.selectionAnchor).toBe(4);
+ b.handleInput('\x1b[1;2D');expect(b.selectedText).toBe('b中😀');
+});
