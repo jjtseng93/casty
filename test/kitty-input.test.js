@@ -35,13 +35,17 @@ test('Kitty input reaches CDP, local commands stay local, releases cannot quit, 
  }
  events.length=0;
 
- // Legacy letters use the same CDP sequence as Kitty press + release.
- for(const letter of 'wasdW0 ') {
+ // Every printable legacy ASCII character, including punctuation shortcuts,
+ // uses the same CDP sequence as Kitty press + release.
+ for(const letter of Array.from({length:95},(_,i)=>String.fromCharCode(i+32))) {
   events.length=0;
   await feed(letter);
   const legacy=events.map(e=>e.params);
   assert.deepEqual(legacy.map(e=>e.type),['rawKeyDown','char','keyUp']);
-  assert.equal(legacy[0].code,letter===' '?'Space':letter==='0'?'Digit0':'Key'+letter.toUpperCase());
+  if(/^[a-z]$/i.test(letter))assert.equal(legacy[0].code,'Key'+letter.toUpperCase());
+  if(/^[0-9]$/.test(letter))assert.equal(legacy[0].code,'Digit'+letter);
+  if(letter===' ')assert.equal(legacy[0].code,'Space');
+  if(letter==='/')assert.equal(legacy[0].code,'Slash');
   assert.equal(legacy[1].text,letter);
   events.length=0;
   await feed('\x1b['+letter.charCodeAt(0)+'u\x1b['+letter.charCodeAt(0)+';1:3u');
@@ -62,6 +66,11 @@ test('Kitty input reaches CDP, local commands stay local, releases cannot quit, 
  events.length=0;await feed('w');await feed(' ');await feed('a');
  const spaced=JSON.parse(JSON.stringify(events));
  events.length=0;await feed('w a');assert.deepEqual(normalize(events),normalize(spaced));
+ events.length=0;await feed('/');await feed('中');await feed('?');
+ const punctuationMixed=JSON.parse(JSON.stringify(events));
+ events.length=0;await feed('/中?');assert.deepEqual(normalize(events),normalize(punctuationMixed));
+ events.length=0;await feed('\x1b[200~/?:.\x1b[201~');
+ assert.deepEqual(events,[{method:'Input.insertText',params:{text:'/?:.'}}]);
  // Paste delimiters may themselves straddle chunks.
  events.length=0;
  for(const part of ['\x1b[20','0~wa','sd\x1b[2','01~'])await feed(part);
