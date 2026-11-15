@@ -3,6 +3,24 @@ import {EventEmitter} from 'node:events';
 import {startInputHandling} from '../lib/input.js';
 import {UrlBar,PromptHistory} from '../lib/urlbar.js';
 import {runWin32} from '../lib/win32.js';
+import {Win32TextInput} from '../lib/win32-text.js';
+import {win32Key} from '../lib/win32-key.js';
+
+test('IME-processed Space sends one key press and a matching char, never insertText',async()=>{
+ const f=fixture(),input=new Win32TextInput(),space=win32Key(32,0x00390001n,0);
+ try{
+  input.processKey(space);
+  input.composition(true);input.reset(true);await f.controller.releaseNativeInput();
+  input.compositionUpdate(0x800);input.composition(false);
+  const recovered=input.recoverSpace(' ');
+  await f.controller.dispatchNative('',recovered);
+  await f.controller.dispatchNativeText(' ',recovered);
+  await f.controller.dispatchNative('',input.releaseProcessed(space));
+  expect(f.calls.filter(c=>c.method==='Input.dispatchKeyEvent').map(c=>[c.params.type,c.params.code]))
+   .toEqual([['rawKeyDown','Space'],['char','Space'],['keyUp','Space']]);
+  expect(f.calls.some(c=>c.method==='Input.insertText')).toBe(false);
+ }finally{f.controller.dispose();}
+});
 
 function fixture(options={}){
  const calls=[],client=new EventEmitter();
