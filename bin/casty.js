@@ -189,6 +189,7 @@ import { startBrowser, setupPage, startScreencast, stopScreencast, screencastReg
 import { queryRawPreference, sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
 import { enableMouse, disableMouse, startInputHandling, stopInputHandling } from '../lib/input.js';
 import { loadKeyBindings } from '../lib/keys.js';
+import { guardRejections } from '../lib/rejection-guard.js';
 import { loadConfig } from '../lib/config.js';
 import { startMedia } from '../lib/media.js';
 import { toURL } from '../lib/urlbar.js';
@@ -338,6 +339,8 @@ async function main() {
   process.on('SIGTERM', shutdown);
   process.on('SIGHUP', shutdown);
   urlBar = startInputHandling(client, cssCellW, cssCellH, term.zoom, bindings, () => forceCapture(), zoomControl, { width: term.mouseCellWidth, height: term.mouseCellHeight, known: term.pixelGeometryKnown }, { noShortcuts, readonly, mapPointer: attachEndpoint ? (col,row)=>attachedDisplay.map(col,row) : null, getCaptureFormat: () => capturePolicy?.format });
+  // A timed-out input or capture on a slow engine shows in the status line; it must not end casty.
+  guardRejections({report: message => urlBar.showTemporaryStatus(message, 8000), ignore: () => shuttingDown || disconnected});
   enableMouse();
   await initializeTransport(() => { forceCapture(); });
   if (shuttingDown) return;
