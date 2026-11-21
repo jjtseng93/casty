@@ -68,3 +68,66 @@ test('native attach refreshes remote geometry before frames without resizing it'
  expect(viewports.map(v=>v.width)).toEqual([800,1200]);
  expect(calls).toEqual(['Page.getLayoutMetrics','Page.captureScreenshot','Page.getLayoutMetrics','Page.captureScreenshot']);
 });
+
+// A native window has no terminal to redraw, so, like the terminal frontend, it forces a
+// capture when the page reports progress instead of waiting for the engine to push a frame.
+function slowPage(failures = 0) {
+  const client = new EventEmitter();
+  const shots = [];
+  let failed = 0;
+  client.send = async method => {
+    if (method !== 'Page.captureScreenshot') return {};
+    shots.push(Date.now());
+    if (failed < failures) { failed++; throw Object.assign(Error('CDP timeout: Page.captureScreenshot'), {code:'CDP_TIMEOUT'}); }
+    return {data:'AA=='};
+  };
+  const frames = [];
+  const capture = createNativeCapture({client, update: async () => {},
+    frameOptions: () => ({width:100,height:100,format:'bgra',onFrame: data => frames.push(data)}), onError(){}});
+  return {client, shots, frames, capture};
+}
+
+test('page progress events force captures like the terminal frontend', async () => {
+  const {client, shots, capture} = slowPage();
+  try {
+    await capture.resize();
+    await Bun.sleep(50);
+    const before = shots.length;
+    client.emit('Page.loadEventFired');
+    await Bun.sleep(1500);
+    // 0, 300 and 1000 ms after the event.
+    expect(shots.length - before).toBe(3);
+    const after = shots.length;
+    client.emit('Page.frameNavigated', {frame:{id:'child', parentId:'main'}});
+    await Bun.sleep(100);
+    expect(shots.length).toBe(after); // an iframe navigating is not the page
+    client.emit('Page.frameNavigated', {frame:{id:'main'}});
+    await Bun.sleep(100);
+    expect(shots.length).toBeGreaterThan(after);
+  } finally { capture.close(); }
+  for (const name of ['Page.domContentEventFired','Page.loadEventFired','Page.frameNavigated','Page.navigatedWithinDocument'])
+    expect(client.listenerCount(name)).toBe(0);
+});
+
+test('a closed native capture ignores its pending delayed captures', async () => {
+  const {client, shots, capture} = slowPage();
+  await capture.resize();
+  await Bun.sleep(50);
+  client.emit('Page.domContentEventFired');
+  await Bun.sleep(50);
+  capture.close();
+  const closedAt = shots.length;
+  await Bun.sleep(1300);
+  expect(shots.length).toBe(closedAt);
+});
+
+test('a very slow engine still gets its page drawn once it answers', async () => {
+  // The first screenshots time out; capture keeps retrying until one comes back.
+  const {client, frames, capture} = slowPage(3);
+  try {
+    await capture.resize();
+    client.emit('Page.loadEventFired');
+    for (let i = 0; i < 60 && !frames.length; i++) await Bun.sleep(100);
+    expect(frames.length).toBeGreaterThan(0);
+  } finally { capture.close(); }
+});
