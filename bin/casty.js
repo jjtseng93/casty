@@ -185,7 +185,7 @@ if (!attachEndpoint) await ensureChrome();
 
 import { attachPage, readAttachViewport, attachDisplay } from '../lib/attach.js';
 import {transientRawCaptureError,createCapturePolicy,isRaw,viewportClip} from '../lib/capture-format.js';
-import { startBrowser, setupPage, startScreencast, stopScreencast, screencastRegion } from '../lib/browser.js';
+import { startBrowser, setupPage, startScreencast, startScreencastWithRetry, stopScreencast, screencastRegion } from '../lib/browser.js';
 import { queryRawPreference, sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
 import { enableMouse, disableMouse, startInputHandling, stopInputHandling } from '../lib/input.js';
 import { loadKeyBindings } from '../lib/keys.js';
@@ -570,13 +570,16 @@ async function main() {
       // remote resize, and the browser may finish it after we stop waiting.
       const cw = Math.round(captureGeometry.width / captureGeometry.zoom);
       const ch = Math.round(captureGeometry.height / captureGeometry.zoom);
-      ({ forceCapture, cleanup: screencastCleanup } = await startScreencast(client, {
+      ({ forceCapture, cleanup: screencastCleanup } = await startScreencastWithRetry(client, {
         width: cw,
         height: ch,
         format: capturePolicy.format,
         capturePolicy,
         idleRefreshInterval: attachEndpoint ? 1000 : 0,
         onFrame,
+      }, {
+        stopped: () => shuttingDown || disconnected,
+        onError: err => console.error('casty: screencast restart failed, retrying:', err.message),
       }));
     },
     onError(err) { if (!shuttingDown) console.error('casty: resize error:', err.message); },

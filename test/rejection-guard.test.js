@@ -71,3 +71,24 @@ test('native input to an open page dialog survives a CDP timeout', async () => {
   } finally { console.error = original; controller.dispose(); }
   expect(errors.some(e => e.includes('CDP timeout: Input.insertText'))).toBe(true);
 });
+
+test('input requests wait a short fixed time so one stuck reply cannot freeze the queue', async () => {
+  const sent = [];
+  const client = new EventEmitter();
+  client.send = async (method, params, timeout, options) => {
+    sent.push({method, timeout, options});
+    return method === 'Page.getNavigationHistory' ? {currentIndex: 0, entries: [{id: 1, url: 'https://example.com'}]} : {};
+  };
+  const bar = new UrlBar({history: new PromptHistory(null)});
+  bar.native = true; bar.render = () => {};
+  const controller = startInputHandling(client, 1, 1, 1, {}, () => {}, null, {},
+    {native: {urlBar: bar, quit() {}, clipboardWrite() {}, clipboardRead: async () => ''}});
+  try {
+    await controller.dispatchNativeText('a', {key: 'a', code: 'KeyA', keyCode: 65, modifiers: 0});
+    const input = sent.find(s => s.method === 'Input.dispatchKeyEvent');
+    expect(input.timeout).toBe(3000);
+    expect(input.options).toEqual({fixed: true});
+    // Other requests keep the engine's own, learned deadlines.
+    expect(sent.find(s => s.method === 'Page.getNavigationHistory').options).toBeUndefined();
+  } finally { controller.dispose(); }
+});

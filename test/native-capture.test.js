@@ -131,3 +131,35 @@ test('a very slow engine still gets its page drawn once it answers', async () =>
     expect(frames.length).toBeGreaterThan(0);
   } finally { capture.close(); }
 });
+
+test('a screencast that fails to restart is started again instead of leaving the view frozen', async () => {
+  const client = new EventEmitter();
+  let starts = 0;
+  client.send = async method => {
+    if (method === 'Page.startScreencast' && ++starts === 1) throw Error('CDP request superseded');
+    return {data: 'AA=='};
+  };
+  const errors = [];
+  const capture = createNativeCapture({client, update: async () => {},
+    frameOptions: () => ({width:100,height:100,format:'bgra',onFrame(){}}), onError: e => errors.push(e.message)});
+  try {
+    await capture.resize();
+    expect(starts).toBe(2);
+    expect(errors).toEqual(['CDP request superseded']);
+    expect(client.listenerCount('Page.screencastFrame')).toBe(1);
+  } finally { capture.close(); }
+});
+
+test('screencast restarts stop when the capture is closed or the connection is gone', async () => {
+  const {startScreencastWithRetry} = await import('../lib/browser.js');
+  const gone = new EventEmitter();
+  let tries = 0;
+  gone.send = async () => { tries++; throw Error('Connection closed'); };
+  await expect(startScreencastWithRetry(gone, {width:1,height:1,onFrame(){}}, {delays:[1]})).rejects.toThrow('Connection closed');
+  expect(tries).toBe(1);
+  const flaky = new EventEmitter();
+  let closed = false, attempts = 0;
+  flaky.send = async () => { attempts++; closed = true; throw Error('CDP request superseded'); };
+  await expect(startScreencastWithRetry(flaky, {width:1,height:1,onFrame(){}}, {stopped: () => closed, delays:[1]})).rejects.toThrow('superseded');
+  expect(attempts).toBe(1);
+});

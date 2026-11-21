@@ -107,3 +107,28 @@ test('a JavaScript modal pauses request deadlines without replaying the initiati
   setTimeout(()=>{ws.send(JSON.stringify({method:'Page.javascriptDialogClosed',params:{result:true}}));ws.send(JSON.stringify({id:m.id,result:{}}));},100);
  });
 });
+
+test('a deadline learned from slow replies is unlearned once the engine answers quickly',async()=>{
+ await endpoint(async(c)=>{
+  c._deadlines.set('Page.captureScreenshot',50000); // left behind by an earlier slow start
+  await c.send('Page.captureScreenshot',{},20);
+  expect(c.timeoutFor('Page.captureScreenshot',20)).toBe(20);
+  // A reply that took long still teaches a longer deadline, at twice its time and never past two minutes.
+  c._settle('Page.captureScreenshot',90,20);
+  expect(c.timeoutFor('Page.captureScreenshot',20)).toBe(180);
+  c._settle('Page.captureScreenshot',10_000_000,20);
+  expect(c.timeoutFor('Page.captureScreenshot',20)).toBe(120000);
+ },(ws,m)=>ws.send(JSON.stringify({id:m.id,result:{data:'image'}})));
+});
+
+test('a fixed deadline neither learns longer waits nor holds later requests behind a slow one',async()=>{
+ await endpoint(async(c,m)=>{
+  for(let i=0;i<3;i++){
+   const started=Date.now();
+   await expect(c.send('Input.dispatchMouseEvent',{},30,{fixed:true})).rejects.toThrow('CDP timeout');
+   expect(Date.now()-started).toBeLessThan(150);
+  }
+  expect(c.timeoutFor('Input.dispatchMouseEvent',30)).toBe(30);
+  expect(m).toHaveLength(3); // each tried once, none replayed
+ });
+});
