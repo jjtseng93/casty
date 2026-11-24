@@ -187,6 +187,7 @@ import { attachPage, readAttachViewport, attachDisplay } from '../lib/attach.js'
 import {transientRawCaptureError,createCapturePolicy,isRaw,viewportClip} from '../lib/capture-format.js';
 import { startBrowser, setupPage, startScreencast, startScreencastWithRetry, stopScreencast, screencastRegion } from '../lib/browser.js';
 import { queryRawPreference, sendFrame, resetFrameCache, clearScreen, hideCursor, showCursor, cleanup as cleanupTmp, initializeTransport, detectTransport, setDisplaySize, disableDedup } from '../lib/kitty.js';
+import {stopBrowserProcess} from '../lib/browser-process.js';
 import { enableMouse, disableMouse, startInputHandling, stopInputHandling } from '../lib/input.js';
 import { loadKeyBindings } from '../lib/keys.js';
 import { guardRejections } from '../lib/rejection-guard.js';
@@ -459,12 +460,15 @@ async function main() {
     await Promise.race([
       (async () => {
         await stopScreencast(client, screencastCleanup);  // Stop screencast (disables pending captures)
-        if (!attachEndpoint) await client.send('Browser.close').catch(() => {});
+        if (!attachEndpoint) {
+          if (process.platform === 'win32') stopBrowserProcess(chromeProcess);
+          else await client.send('Browser.close').catch(() => {});
+        }
       })().catch(() => {}),
       new Promise(resolve => setTimeout(resolve, 1000)),
     ]);
     client.close();
-    chromeProcess?.kill();
+    stopBrowserProcess(chromeProcess);
     await media?.cleanup();
     await Promise.allSettled([...terminalQueries]);
     // Allow fragmented late replies already in transit to finish before
